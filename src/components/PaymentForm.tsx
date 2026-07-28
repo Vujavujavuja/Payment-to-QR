@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { COMMON_PAYMENT_CODES, IPS_FIELD_LIMITS } from '@/core/constants';
 import type { IpsPayment, ValidationIssue } from '@/core/types';
 import type { FieldConfidence } from '@/extract/types';
@@ -15,8 +16,20 @@ interface Props {
 }
 
 export function PaymentForm({ payment, issues, confidence, onChange }: Props) {
+  const [touched, setTouched] = useState<Set<keyof IpsPayment>>(new Set());
+
+  /**
+   * Only complain about a field once the user has been near it, or once it has
+   * a value to complain about. An empty form greeting someone with three red
+   * "required" errors reads as broken rather than as guidance.
+   */
+  const shouldShowError = (field: keyof IpsPayment) =>
+    touched.has(field) || Boolean((payment[field] as string | undefined)?.trim());
+
   const errorFor = (field: keyof IpsPayment) =>
-    issues.find((i) => i.field === field && i.severity === 'error')?.message;
+    shouldShowError(field)
+      ? issues.find((i) => i.field === field && i.severity === 'error')?.message
+      : undefined;
   const warningFor = (field: keyof IpsPayment) =>
     issues.find((i) => i.field === field && i.severity === 'warning')?.message;
   const uncertain = (field: keyof IpsPayment) => {
@@ -50,11 +63,15 @@ export function PaymentForm({ payment, issues, confidence, onChange }: Props) {
     );
   }
 
+  const markTouched = (name: keyof IpsPayment) =>
+    setTouched((previous) => (previous.has(name) ? previous : new Set(previous).add(name)));
+
   const text = (name: keyof IpsPayment, extra: Record<string, unknown> = {}) => (
     <input
       id={name}
       value={(payment[name] as string | undefined) ?? ''}
       onChange={(event) => onChange({ [name]: event.target.value })}
+      onBlur={() => markTouched(name)}
       aria-invalid={Boolean(errorFor(name))}
       {...extra}
     />
