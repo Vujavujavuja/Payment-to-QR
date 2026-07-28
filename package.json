@@ -1,0 +1,38 @@
+{
+  "name": "open-nbs-ips-qr",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Open source NBS IPS QR code generator — snap a photo of a payment slip and get a scannable IPS QR code.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Vujavujavuja/open-nbs-ips-qr.git"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.65.0",
+    "next": "^15.5.4",
+    "qrcode": "^1.5.4",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "tesseract.js": "^6.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
