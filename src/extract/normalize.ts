@@ -1,0 +1,200 @@
+import { IPS_FIELD_LIMITS } from '@/core/constants';
+import { digitsOnly, normalizeAccount, normalizeAmount, sanitizeText } from '@/core/format';
+import { isValidAccountChecksum } from '@/core/validate';
+import type { ExtractionResult, FieldConfidence } from './types';
+
+/**
+ * Serbian Cyrillic -> Latin, so label matching needs only one alphabet.
+ *
+ * Slips are printed in either script and OCR frequently mixes them within a
+ * single document, which would otherwise double every label pattern below.
+ */
+const CYRILLIC_TO_LATIN: Record<string, string> = {
+  а: 'a', б: 'b', в: 'v', г: 'g', д: 'd', ђ: 'dj', е: 'e', ж: 'z', з: 'z',
+  и: 'i', ј: 'j', к: 'k', л: 'l', љ: 'lj', м: 'm', н: 'n', њ: 'nj', о: 'o',
+  п: 'p', р: 'r', с: 's', т: 't', ћ: 'c', у: 'u', ф: 'f', х: 'h', ц: 'c',
+  ч: 'c', џ: 'dz', ш: 's',
+};
+
+/** Fold script and diacritics so `šifra`, `sifra` and `шифра` all match one pattern. */
+export function foldScript(input: string): string {
+  return input
+    .toLowerCase()
+    .replace(/[а-џ]/g, (ch) => CYRILLIC_TO_LATIN[ch] ?? ch)
+    .replace(/š/g, 's')
+    .replace(/ć|č/g, 'c')
+    .replace(/ž/g, 'z')
+    .replace(/đ/g, 'dj');
+}
+
+/** Any 18-digit account, hyphenated or not. */
+const ACCOUNT_PATTERN = /\b\d{3}[-\s]?\d{1,13}[-\s]?\d{2}\b|\b\d{18}\b/g;
+
+const LABELS = {
+  recipientAccount: /\b(racun\s+primaoca|racun\s+za\s+uplatu|primalac\s+racun)\b/,
+  recipientName: /\b(primalac|poverilac|korisnik)\b/,
+  payerName: /\b(platilac|uplatilac|duznik)\b/,
+  amount: /\b(iznos|ukupno|za\s+uplatu|svega)\b/,
+  paymentCode: /\b(sifra\s+placanja|sifra)\b/,
+  purpose: /\b(svrha(\s+placanja|\s+uplate)?)\b/,
+  referenceModel: /\bmodel\b/,
+  referenceNumber: /\b(poziv\s+na\s+broj|pozivnabroj|pnb)\b/,
+} as const;
+
+interface Line {
+  raw: string;
+  folded: string;
+}
+
+function toLines(text: string): Line[] {
+  return text
+    .split(/\r?\n/)
+    .map((raw) => raw.trim())
+    .filter(Boolean)
+    .map((raw) => ({ raw, folded: foldScript(raw) }));
+}
+
+/**
+ * Read the value belonging to a label.
+ *
+ * On a slip the value sits either to the right of the label or directly below
+ * it, depending on the layout, so both are tried. Anything left of the label on
+ * the same line is discarded — that is the label's own column header.
+ */
+function valueForLabel(lines: Line[], pattern: RegExp): string | null {
+  for (let i = 0; i < lines.length; i++) {
+    const match = lines[i].folded.match(pattern);
+    if (!match || match.index === undefined) continue;
+
+    const after = lines[i].raw.slice(match.index + match[0].length).replace(/^[\s:.\-–]+/, '').trim();
+    if (after) return after;
+
+    // Value wrapped to the next line; skip a line that is only another label.
+    const next = lines[i + 1];
+    if (next && !Object.values(LABELS).some((p) => p.test(next.folded))) return next.raw;
+  }
+  return null;
+}
+
+/** Pull the most plausible account out of free text. */
+function findAccount(text: string, lines: Line[]): { value: string; confidence: number } | null {
+  const labelled = valueForLabel(lines, LABELS.recipientAccount);
+  const candidates: string[] = [];
+
+  if (labelled) candidates.push(...(labelled.match(ACCOUNT_PATTERN) ?? []));
+  candidates.push(...(text.match(ACCOUNT_PATTERN) ?? []));
+
+  // A checksum-valid candidate beats a positionally-lucky one: OCR routinely
+  // produces digit runs that look like accounts but are dates or invoice ids.
+  const normalized = candidates
+    .map((c) => normalizeAccount(c))
+    .filter((c): c is string => c !== null);
+
+  const verified = normalized.find(isValidAccountChecksum);
+  if (verified) return { value: verified, confidence: 0.95 };
+  if (normalized.length > 0) return { value: normalized[0], confidence: 0.4 };
+  return null;
+}
+
+function findAmount(lines: Line[]): { value: string; confidence: number } | null {
+  const labelled = valueForLabel(lines, LABELS.amount);
+  if (labelled) {
+    const normalized = normalizeAmount(labelled);
+    if (normalized && Number(normalized) > 0) return { value: normalized, confidence: 0.8 };
+  }
+
+  // Fall back to the largest decimal-looking number on the slip. Totals are
+  // usually the biggest figure present, and a wrong guess is visible and
+  // trivially corrected in the form.
+  const numbers: string[] = [];
+  for (const line of lines) {
+    for (const token of line.raw.match(/\d[\d.,]*\d|\d/g) ?? []) {
+      if (/[.,]\d{2}\b/.test(token)) numbers.push(token);
+    }
+  }
+  const parsed = numbers
+    .map((n) => normalizeAmount(n))
+    .filter((n): n is string => n !== null && Number(n) > 0)
+    .sort((a, b) => Number(b) - Number(a));
+
+  return parsed.length > 0 ? { value: parsed[0], confidence: 0.35 } : null;
+}
+
+/**
+ * Turn OCR text into a partial payment.
+ *
+ * Every field is optional and low-confidence guesses are still returned — the
+ * form shows them for review rather than applying them silently, so a wrong
+ * guess costs the user one correction while a missing one costs full retyping.
+ */
+export function extractPaymentFromText(text: string, provider: string): ExtractionResult {
+  const lines = toLines(text);
+  const payment: ExtractionResult['payment'] = {};
+  const confidence: FieldConfidence = {};
+  const notes: string[] = [];
+
+  const account = findAccount(text, lines);
+  if (account) {
+    payment.recipientAccount = account.value;
+    confidence.recipientAccount = account.confidence;
+    if (account.confidence < 0.5) notes.push('Account control digits did not verify — please check it.');
+  }
+
+  const amount = findAmount(lines);
+  if (amount) {
+    payment.amount = amount.value;
+    confidence.amount = amount.confidence;
+    if (amount.confidence < 0.5) notes.push('Amount was inferred from the largest figure on the page.');
+  }
+
+  const recipientName = valueForLabel(lines, LABELS.recipientName);
+  if (recipientName) {
+    payment.recipientName = sanitizeText(recipientName, IPS_FIELD_LIMITS.recipientName);
+    confidence.recipientName = 0.6;
+  }
+
+  const payerName = valueForLabel(lines, LABELS.payerName);
+  if (payerName) {
+    payment.payerName = sanitizeText(payerName, IPS_FIELD_LIMITS.payerName);
+    confidence.payerName = 0.6;
+  }
+
+  const purpose = valueForLabel(lines, LABELS.purpose);
+  if (purpose) {
+    payment.purpose = sanitizeText(purpose, IPS_FIELD_LIMITS.purpose);
+    confidence.purpose = 0.6;
+  }
+
+  const paymentCode = valueForLabel(lines, LABELS.paymentCode);
+  if (paymentCode) {
+    const code = digitsOnly(paymentCode).slice(0, 3);
+    if (code.length === 3) {
+      payment.paymentCode = code;
+      confidence.paymentCode = 0.7;
+    }
+  }
+
+  const model = valueForLabel(lines, LABELS.referenceModel);
+  if (model) {
+    const digits = digitsOnly(model).slice(0, 2);
+    if (digits.length === 2) {
+      payment.referenceModel = digits;
+      confidence.referenceModel = 0.6;
+    }
+  }
+
+  const reference = valueForLabel(lines, LABELS.referenceNumber);
+  if (reference) {
+    const cleaned = sanitizeText(reference, IPS_FIELD_LIMITS.referenceNumber).replace(/[^\d-]/g, '');
+    if (cleaned) {
+      payment.referenceNumber = cleaned;
+      confidence.referenceNumber = 0.5;
+    }
+  }
+
+  if (Object.keys(payment).length === 0) {
+    notes.push('Nothing recognisable was found — the image may be too blurry or not a payment slip.');
+  }
+
+  return { payment, confidence, rawText: text, provider, notes };
+}
