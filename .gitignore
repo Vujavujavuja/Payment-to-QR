@@ -46,3 +46,13 @@ Thumbs.db
 # Tesseract language data cached at runtime
 *.traineddata
 *.traineddata.gz
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
