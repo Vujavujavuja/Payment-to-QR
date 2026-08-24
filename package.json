@@ -26,15 +26,14 @@
     "tesseract.js": "^6.0.1"
   },
   "devDependencies": {
-    "@eslint/eslintrc": "^3.3.6",
-    "@types/node": "^22.10.0",
+    "@types/node": "^26.2.0",
     "@types/qrcode": "^1.5.5",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.4",
     "eslint": "^9.39.5",
-    "eslint-config-next": "^15.5.23",
+    "eslint-config-next": "^16.3.2",
     "typescript": "^5.7.0",
-    "vitest": "^3.0.0"
+    "vitest": "^4.1.11"
   },
   "engines": {
     "node": ">=20"
