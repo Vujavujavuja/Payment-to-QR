@@ -29,7 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           {children}
           <footer className="site-footer">
             Unofficial and open source — not affiliated with the National Bank of Serbia.{' '}
-            <a href="https://github.com/Vujavujavuja/open-nbs-ips-qr">Source on GitHub</a>. Always
+            <a href="https://github.com/Vujavujavuja/Payment-to-QR">Source on GitHub</a>. Always
             confirm the amount and account in your banking app before paying.
           </footer>
         </div>

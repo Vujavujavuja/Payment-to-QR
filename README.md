@@ -1,11 +1,11 @@
-<h1 align="center">open-nbs-ips-qr</h1>
+<h1 align="center">Payment to QR</h1>
 
 <p align="center">
   <strong>Photograph a Serbian payment slip. Get a QR code you can pay from any banking app.</strong>
 </p>
 
 <p align="center">
-  <a href="https://github.com/Vujavujavuja/open-nbs-ips-qr/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Vujavujavuja/open-nbs-ips-qr/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/Vujavujavuja/Payment-to-QR/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Vujavujavuja/Payment-to-QR/actions/workflows/ci.yml/badge.svg"></a>
   <a href="LICENSE"><img alt="Licence: MIT" src="https://img.shields.io/badge/licence-MIT-blue.svg"></a>
   <img alt="Node" src="https://img.shields.io/badge/node-%E2%89%A520-5FA04E?logo=node.js&logoColor=white">
   <img alt="Python" src="https://img.shields.io/badge/python-3.10--3.13-3776AB?logo=python&logoColor=white">
@@ -71,7 +71,7 @@ that reason, and the key stays server-side — it is never shipped to the browse
 ⚠️ **`/api/extract` has no rate limit.** It spends your Anthropic credit, one
 call per request, with no authentication. If you deploy this anywhere public,
 put a rate limit in front of that route first. See
-[#8](https://github.com/Vujavujavuja/open-nbs-ips-qr/issues/8).
+[#8](https://github.com/Vujavujavuja/Payment-to-QR/issues/8).
 
 </details>
 
@@ -88,7 +88,7 @@ The same specification, twice, with test suites that mirror each other.
 | Tests | 35 | 71 |
 
 The Python port currently fixes three bugs the TypeScript still has — see
-[#2](https://github.com/Vujavujavuja/open-nbs-ips-qr/issues/2). Divergence is
+[#2](https://github.com/Vujavujavuja/Payment-to-QR/issues/2). Divergence is
 tracked, not accidental.
 
 ### TypeScript
@@ -194,7 +194,7 @@ python/
 
 Issues and pull requests are welcome — start with
 [CONTRIBUTING.md](CONTRIBUTING.md), or the
-[good first issues](https://github.com/Vujavujavuja/open-nbs-ips-qr/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
+[good first issues](https://github.com/Vujavujavuja/Payment-to-QR/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
 
 **The most useful contribution needs no code:** a document that extracts badly.
 Real layouts vary far more than any fixture, and every one added so far has
@@ -211,9 +211,9 @@ explains how.
 - Model 97 reference validation is warning-only, and abstains on non-numeric
   references — some issuers use letters.
 - Generated codes are not verified against the official NBS validator
-  ([#4](https://github.com/Vujavujavuja/open-nbs-ips-qr/issues/4)).
+  ([#4](https://github.com/Vujavujavuja/Payment-to-QR/issues/4)).
 - The interface is English only
-  ([#3](https://github.com/Vujavujavuja/open-nbs-ips-qr/issues/3)).
+  ([#3](https://github.com/Vujavujavuja/Payment-to-QR/issues/3)).
 
 ## Security
 

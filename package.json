@@ -1,12 +1,12 @@
 {
-  "name": "open-nbs-ips-qr",
+  "name": "payment-to-qr",
   "version": "0.1.0",
   "private": true,
   "description": "Open source NBS IPS QR code generator — snap a photo of a payment slip and get a scannable IPS QR code.",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Vujavujavuja/open-nbs-ips-qr.git"
+    "url": "https://github.com/Vujavujavuja/Payment-to-QR.git"
   },
   "scripts": {
     "dev": "next dev",

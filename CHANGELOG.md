@@ -67,7 +67,7 @@ web app in front of one of them, and CI that verifies both.
 
 Found by running a real Serbian traffic-fine summons through the extractor.
 All three exist in the TypeScript and are fixed in the Python port only; see
-[#2](https://github.com/Vujavujavuja/open-nbs-ips-qr/issues/2) for the backport.
+[#2](https://github.com/Vujavujavuja/Payment-to-QR/issues/2) for the backport.
 
 - **Fold offsets on Cyrillic.** Folding is not length-preserving — `ђ`, `љ`,
   `њ` and `џ` each become two Latin characters — so an offset found in the
@@ -86,9 +86,9 @@ All three exist in the TypeScript and are fixed in the Python port only; see
 - **Dates read as amounts.** `30.04.2027` parsed to a confident `30042027.00`.
 - **`lang="sr"` on an English interface**, which made screen readers pronounce
   English text with a Serbian voice. Serbian copy is tracked in
-  [#3](https://github.com/Vujavujavuja/open-nbs-ips-qr/issues/3).
+  [#3](https://github.com/Vujavujavuja/Payment-to-QR/issues/3).
 - **Required-field errors on an untouched form**, which read as broken rather
   than as guidance.
 
-[Unreleased]: https://github.com/Vujavujavuja/open-nbs-ips-qr/compare/v0.1.0...HEAD
-[0.1.0]: https://github.com/Vujavujavuja/open-nbs-ips-qr/releases/tag/v0.1.0
+[Unreleased]: https://github.com/Vujavujavuja/Payment-to-QR/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Vujavujavuja/Payment-to-QR/releases/tag/v0.1.0
