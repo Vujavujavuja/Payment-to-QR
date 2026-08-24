@@ -1,16 +1,18 @@
-import { dirname } from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { FlatCompat } from '@eslint/eslintrc';
+import nextCoreWebVitals from 'eslint-config-next/core-web-vitals';
+import nextTypeScript from 'eslint-config-next/typescript';
 
-const compat = new FlatCompat({ baseDirectory: dirname(fileURLToPath(import.meta.url)) });
-
+// eslint-config-next 16 ships native flat config. Routing it through
+// FlatCompat — the eslintrc bridge the 15.x setup needed — makes the
+// validator walk a self-referential plugin object and die with
+// "Converting circular structure to JSON". These are imported directly.
 const config = [
   {
     // Build output, dependencies, and the Python tree — eslint should not
     // walk any of it.
     ignores: ['.next/**', 'out/**', 'build/**', 'node_modules/**', 'python/**', 'next-env.d.ts'],
   },
-  ...compat.extends('next/core-web-vitals', 'next/typescript'),
+  ...nextCoreWebVitals,
+  ...nextTypeScript,
   {
     rules: {
       // The QR code and the slip preview are a data: URL and a blob: URL.
