@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ips-qr"
+version = "0.1.0"
+description = "NBS IPS QR payload encoding, validation and extraction — Python port of src/core."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.10"
+dependencies = []
+
+[project.optional-dependencies]
+# The core library is dependency-free on purpose; only rendering needs these.
+qr = ["qrcode[pil]>=7.4"]
+dev = [
+    "qrcode[pil]>=7.4",
+    "pytest>=8.0",
+    # An independent decoder, so the round-trip test does not grade its own homework.
+    "opencv-python-headless>=4.9",
+    "ruff>=0.6",
+]
+
+[project.scripts]
+ips-qr = "ips_qr.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["ips_qr*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+ignore = [
+    # The Cyrillic->Latin table reads as a table; one pair per line would make
+    # it 30 lines of noise.
+    "E501",
+    # RUF001/2/3 flag every Cyrillic character as "ambiguous" with a Latin
+    # lookalike. That is the entire point of this codebase — it reads Serbian
+    # documents — so the rule is noise here, not a finding.
+    "RUF001",
+    "RUF002",
+    "RUF003",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# importorskip has to run before the module import it guards.
+"tests/test_qr_roundtrip.py" = ["E402"]
