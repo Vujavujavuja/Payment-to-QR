@@ -1,12 +1,30 @@
-# open-nbs-ips-qr
+<h1 align="center">open-nbs-ips-qr</h1>
 
-Open source **NBS IPS QR** code generator. Photograph a payment slip — or a bill, an invoice, a screenshot someone sent you — and get a scannable IPS QR code you can pay from any Serbian banking app.
+<p align="center">
+  <strong>Photograph a Serbian payment slip. Get a QR code you can pay from any banking app.</strong>
+</p>
 
-> Unofficial project. Not affiliated with or endorsed by the National Bank of Serbia. Always confirm the amount and recipient account in your banking app before paying.
+<p align="center">
+  <a href="https://github.com/Vujavujavuja/open-nbs-ips-qr/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Vujavujavuja/open-nbs-ips-qr/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="LICENSE"><img alt="Licence: MIT" src="https://img.shields.io/badge/licence-MIT-blue.svg"></a>
+  <img alt="Node" src="https://img.shields.io/badge/node-%E2%89%A520-5FA04E?logo=node.js&logoColor=white">
+  <img alt="Python" src="https://img.shields.io/badge/python-3.10--3.13-3776AB?logo=python&logoColor=white">
+  <a href="CONTRIBUTING.md"><img alt="PRs welcome" src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg"></a>
+</p>
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshot-dark.png">
+    <img alt="The app: an image dropzone, a payment form with the fields filled in, and the generated IPS QR code beside it" src="docs/screenshot.png" width="900">
+  </picture>
+</p>
+
+> **Unofficial project.** Not affiliated with or endorsed by the National Bank of Serbia.
+> Always confirm the amount and recipient account in your banking app before paying.
 
 ---
 
-## How it works
+## The idea
 
 ```
 image ──▶ extractor ──▶ editable form ──▶ validation ──▶ QR code
@@ -14,7 +32,14 @@ image ──▶ extractor ──▶ editable form ──▶ validation ──▶
            Claude)         the fields)     field limits)
 ```
 
-The middle step is not skippable by design. Extraction is a best effort: OCR misreads digits and vision models can transcribe a `7` as a `1`. Every field the extractor was unsure about is flagged for review, and **no QR is rendered until the payment passes validation** — including the account's mod 97-10 control digits.
+**The middle step is not skippable, by design.** Extraction is best effort: OCR
+misreads digits and vision models transcribe a `7` as a `1`. Every field the
+extractor was unsure about is flagged for review, and **no QR is rendered until
+the payment passes validation** — including the account's mod 97-10 control
+digits.
+
+A wrong digit here sends money to a stranger. That constraint shapes everything
+else in this repository.
 
 ## Quick start
 
@@ -23,27 +48,89 @@ npm install
 npm run dev
 ```
 
-Open <http://localhost:3000>. No configuration, no API key. OCR runs in your browser and the image never leaves your device.
+Open <http://localhost:3000>. No configuration, no API key. OCR runs in your
+browser and the image never leaves your device.
 
-### Optional: Claude vision extraction
+<details>
+<summary><strong>Optional: Claude vision extraction</strong></summary>
 
-On-device OCR struggles with angled photos, handwriting, and low light. To enable a more capable extractor:
+On-device OCR struggles with angled photos, handwriting, and low light. For a
+more capable extractor:
 
 ```bash
 cp .env.example .env
 # add your key to ANTHROPIC_API_KEY
 ```
 
-The option only appears in the UI once the server confirms a key is configured. Note the tradeoff: this **sends the image to Anthropic**, and a payment slip usually carries a name, an address, and an account number. It is opt-in for that reason, and the key stays server-side — it is never shipped to the browser.
+The option only appears in the UI once the server confirms a key is configured.
 
-## Scripts
+Note the tradeoff: this **sends the image to Anthropic**, and a payment slip
+usually carries a name, an address, and an account number. It is opt-in for
+that reason, and the key stays server-side — it is never shipped to the browser.
 
-| Command | What it does |
-| --- | --- |
-| `npm run dev` | Dev server on port 3000 |
-| `npm run build` | Production build |
-| `npm test` | Core library test suite |
-| `npm run typecheck` | `tsc --noEmit` |
+⚠️ **`/api/extract` has no rate limit.** It spends your Anthropic credit, one
+call per request, with no authentication. If you deploy this anywhere public,
+put a rate limit in front of that route first. See
+[#8](https://github.com/Vujavujavuja/open-nbs-ips-qr/issues/8).
+
+</details>
+
+## Two implementations
+
+The same specification, twice, with test suites that mirror each other.
+
+| | TypeScript | Python |
+| --- | --- | --- |
+| Library | `src/core` | `python/ips_qr` |
+| Extraction | `src/extract` | `python/ips_qr/extract` |
+| Interface | Web app (Next.js) | `ips-qr` CLI |
+| Input | Camera, file, paste | Text, PDF, stdin |
+| Tests | 35 | 71 |
+
+The Python port currently fixes three bugs the TypeScript still has — see
+[#2](https://github.com/Vujavujavuja/open-nbs-ips-qr/issues/2). Divergence is
+tracked, not accidental.
+
+### TypeScript
+
+```ts
+import { encodePayment, validatePayment } from '@/core';
+
+const payment = {
+  recipientAccount: '265-1234567890-98', // padded and checksummed for you
+  recipientName: 'Elektrodistribucija Beograd',
+  amount: '3450.00',
+  paymentCode: '189',
+};
+
+const { valid } = validatePayment(payment);
+if (valid) console.log(encodePayment(payment).payload);
+```
+
+### Python
+
+```bash
+cd python && pip install -e ".[dev]"
+ips-qr --pdf racun.pdf --payment-code 253 --png qr.png
+```
+
+```python
+from ips_qr import IpsPayment, encode_payment, validate_payment
+
+payment = IpsPayment(
+    recipient_account="265-1234567890-98",
+    recipient_name="Elektrodistribucija Beograd",
+    amount="3450,00",              # Serbian or English separators
+    payment_code="189",
+)
+
+if validate_payment(payment).valid:
+    print(encode_payment(payment).payload)
+```
+
+`validatePayment` / `validate_payment` separates **errors** (the payload would
+be wrong or unusable) from **warnings** (suspicious but still encodable — you
+may know something the library does not).
 
 ## The payload format
 
@@ -70,60 +157,70 @@ Optional tags are omitted entirely rather than emitted empty.
 
 ### Things that are easy to get wrong
 
-- **Account padding.** Slips print `265-1234567890-98`. The middle segment is 10 digits and must be left-padded to 13 — stripping the hyphens gives you 16 characters, and padding the wrong end gives you a *different, valid-looking* account.
-- **Decimal separators.** `1.234,56` (Serbian) and `1,234.56` (English) both appear, sometimes in one document. The library disambiguates by separator position rather than assuming a locale.
-- **Control digits.** An 18-digit account exceeds `Number.MAX_SAFE_INTEGER`, so the mod 97-10 check must use `BigInt`. Done in floating point, it silently accepts invalid accounts.
+Each of these is a real bug that this code has had, or deliberately avoids.
 
-## Using the core library on its own
-
-`src/core` is framework-agnostic — no React, no DOM outside `qr.ts` — so it can back a CLI or a bot:
-
-```ts
-import { encodePayment, validatePayment } from '@/core';
-
-const payment = {
-  recipientAccount: '265-1234567890-98', // padded and checksummed for you
-  recipientName: 'Elektrodistribucija Beograd',
-  amount: '3450.00',
-  paymentCode: '189',
-};
-
-const { valid, issues } = validatePayment(payment);
-if (valid) console.log(encodePayment(payment).payload);
-```
-
-`validatePayment` separates **errors** (the payload would be wrong or unusable) from **warnings** (suspicious but still encodable — you may know something the library doesn't).
+- **Account padding.** Slips print `265-1234567890-98`. The middle segment is
+  10 digits and must be left-padded to 13 — stripping the hyphens gives you 16
+  characters, and padding the wrong end gives you a *different, valid-looking*
+  account.
+- **Decimal separators.** `1.234,56` (Serbian) and `1,234.56` (English) both
+  appear, sometimes in one document. The libraries disambiguate by separator
+  position rather than assuming a locale.
+- **Control digits.** An 18-digit account exceeds `Number.MAX_SAFE_INTEGER`, so
+  the mod 97-10 check must use `BigInt`. In floating point it silently accepts
+  invalid accounts.
+- **Script folding is not length-preserving.** Serbian `ђ љ њ џ` each fold to
+  two Latin characters, so an offset into the folded text is not an offset into
+  the original. `БУЏЕТ` is enough to misplace every field after it.
+- **Dates look like amounts.** `30.04.2027` parses to a very confident
+  `30042027.00` unless date-shaped tokens are excluded.
+- **Labels have false friends.** `korisnik` is the payee on a bank slip and the
+  driver on a police summons.
 
 ## Project layout
 
 ```
 src/
-  core/        IPS spec: types, validation, encode, parse, QR rendering
-  extract/     Provider interface + Tesseract and Claude implementations
-    providers/
-  app/         Next.js App Router pages and the /api/extract route
-  components/  Dropzone, form, QR preview
+  core/          IPS spec: types, validation, encode, parse, QR rendering
+  extract/       Provider interface, Tesseract and Claude implementations
+  app/           Next.js App Router pages and the /api/extract route
+  components/    Dropzone, form, QR preview
+python/
+  ips_qr/        The port: core, extraction, PDF backend, CLI
+  tests/         71 tests, including a render-and-decode round trip
 ```
-
-## Adding an extractor
-
-Implement `Extractor` from `src/extract/types.ts` and register it in `src/extract/index.ts`. Two rules:
-
-1. **Only report what you found.** Leave a field out rather than guessing at it — a fabricated field is worse than a blank one, because the user won't think to check it.
-2. **Score your confidence honestly.** Anything below `0.7` is flagged in the UI for review. A flat `1.0` defeats the safety net.
 
 ## Contributing
 
-Issues and pull requests welcome. Please keep `npm test` and `npm run typecheck` green; both run in CI.
+Issues and pull requests are welcome — start with
+[CONTRIBUTING.md](CONTRIBUTING.md), or the
+[good first issues](https://github.com/Vujavujavuja/open-nbs-ips-qr/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22).
 
-Especially useful: sample slips that extract badly. Real-world layouts vary far more than any test fixture, and a failing example is the fastest way to improve the heuristics.
+**The most useful contribution needs no code:** a document that extracts badly.
+Real layouts vary far more than any fixture, and every one added so far has
+found a bug. Use the *Document extracts badly* issue template.
+
+⚠️ **Never post an unredacted payment document.** They carry account numbers,
+names and addresses — yours or someone else's — and a public issue is permanent
+and indexed. Retype the values as placeholders; do not blur. CONTRIBUTING.md
+explains how.
 
 ## Known limitations
 
 - OCR accuracy on photographed slips is mediocre. This is why the form exists.
-- Model 97 reference validation is warning-only, and abstains on non-numeric references — some issuers use letters.
-- Generated codes are not verified against the official NBS validator as part of CI.
+- Model 97 reference validation is warning-only, and abstains on non-numeric
+  references — some issuers use letters.
+- Generated codes are not verified against the official NBS validator
+  ([#4](https://github.com/Vujavujavuja/open-nbs-ips-qr/issues/4)).
+- The interface is English only
+  ([#3](https://github.com/Vujavujavuja/open-nbs-ips-qr/issues/3)).
 
-## License
+## Security
+
+To report a vulnerability, email **nemanja@vujic.ai** rather than opening an
+issue. See [SECURITY.md](SECURITY.md) — it explains what counts as a
+vulnerability here, which is narrower and more specific than it sounds.
+
+## Licence
 
 MIT — see [LICENSE](LICENSE).

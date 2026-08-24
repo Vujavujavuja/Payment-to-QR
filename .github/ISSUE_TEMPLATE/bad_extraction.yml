@@ -1,0 +1,100 @@
+name: "Document extracts badly"
+description: A slip, invoice or summons the extractor gets wrong. The most useful report you can file.
+title: "extract: "
+labels: ["extraction", "help wanted"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks — real documents are what improve the heuristics.
+
+        **Before you go further: do not attach the original.** Payment
+        documents carry account numbers, names, addresses, and sometimes plates
+        or case numbers. A public issue is permanent and indexed.
+
+        Retype sensitive values as placeholders (`000-0000000000-00`,
+        `IME PREZIME`). Do not blur — blurring is reversible often enough to
+        matter. Keep the layout and wording; that is the part under test.
+
+  - type: checkboxes
+    id: redacted
+    attributes:
+      label: Redaction
+      options:
+        - label: I have replaced every account number, name, address, reference and case number with a placeholder.
+          required: true
+        - label: I understand this issue is public and permanent.
+          required: true
+
+  - type: textarea
+    id: text
+    attributes:
+      label: Document text
+      description: |
+        Paste the **redacted** text, keeping the original line breaks. Line
+        wrapping matters — several bugs have involved a value split across a
+        line or three labels sharing one line.
+
+        Get it with `ips-qr --pdf yours.pdf --show-text`, or copy from the PDF.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: What should have been extracted
+      description: Only the fields you care about. Placeholders are fine as long as they are consistent with the text above.
+      value: |
+        recipient_account:
+        recipient_name:
+        amount:
+        payment_code:
+        reference_model:
+        reference_number:
+        purpose:
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: What was actually extracted
+      description: The extractor's output, including the confidence scores if you have them.
+      render: text
+    validations:
+      required: true
+
+  - type: dropdown
+    id: implementation
+    attributes:
+      label: Which implementation
+      multiple: true
+      options:
+        - Python (ips_qr)
+        - TypeScript (src/extract)
+        - Not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: source
+    attributes:
+      label: Document type
+      options:
+        - Utility bill / računa
+        - Bank payment slip (uplatnica)
+        - Invoice (faktura)
+        - Government or court document (poziv, rešenje, prekršajni nalog)
+        - Screenshot of a message
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: script
+    attributes:
+      label: Script
+      description: Cyrillic, Latin, or mixed — mixed scripts on one page are common and have their own failure modes.
+      placeholder: "mixed"

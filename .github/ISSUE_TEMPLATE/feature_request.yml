@@ -1,0 +1,44 @@
+name: "Feature request"
+description: Suggest something the project should do.
+title: "feat: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        The README's **Known limitations** section lists work that is already
+        known to be needed. If your idea is one of those, an issue saying you
+        want to work on it is welcome.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What is hard or impossible today? Describe the situation, not the solution.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like to happen
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you considered
+
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: Scope check
+      description: |
+        This project deliberately keeps a narrow shape: a human reviews every
+        payment before a code is rendered, nothing is stored, and no field is
+        ever guessed. Proposals that remove the review step are unlikely to be
+        accepted regardless of how convenient they are.
+      options:
+        - label: This does not remove the human review step.
+        - label: This does not require guessing a field that is not present in the source.

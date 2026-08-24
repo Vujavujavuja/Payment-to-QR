@@ -15,16 +15,18 @@ jobs:
     name: Node (web app + core)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
-          node-version: 20
+          node-version-file: .nvmrc
           cache: npm
 
       # ci, not install: fails on a lockfile that drifted from package.json
       # rather than quietly resolving different versions than a contributor ran.
       - run: npm ci
+
+      - run: npm run lint
 
       - run: npm run typecheck
 
@@ -46,9 +48,9 @@ jobs:
       run:
         working-directory: python
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip

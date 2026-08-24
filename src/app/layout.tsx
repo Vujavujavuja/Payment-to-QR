@@ -16,7 +16,10 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="sr">
+    // Every string below is English. Declaring "sr" made a screen reader
+    // pronounce English text with a Serbian voice. Serbian copy is the real
+    // fix and is tracked separately; until then the attribute tells the truth.
+    <html lang="en">
       <body>
         <div className="page">
           <header className="site-header">
