@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { encodePayment } from '@/core/encode';
 import { renderPayloadToDataUrl, renderPayloadToSvg } from '@/core/qr';
 import type { IpsPayment } from '@/core/types';
@@ -19,31 +19,32 @@ function download(filename: string, href: string) {
 }
 
 export function QrPreview({ payment, enabled }: Props) {
-  const [dataUrl, setDataUrl] = useState<string | null>(null);
-  const [payload, setPayload] = useState('');
-  const [overLength, setOverLength] = useState(false);
+  // Encoding is synchronous, so it is derived during render rather than
+  // synced into state by an effect. Only the image is genuinely async.
+  const { payload, overLength } = useMemo(
+    () => (enabled ? encodePayment(payment) : { payload: '', overLength: false }),
+    [payment, enabled],
+  );
+
+  // The rendered image is stored together with the payload it was made from.
+  // The form re-renders on every keystroke, and a code that no longer matches
+  // the fields beside it is the one genuinely dangerous thing this component
+  // can display -- so a mismatch shows the spinner rather than the old code.
+  const [rendered, setRendered] = useState<{ url: string; payload: string } | null>(null);
   const [copied, setCopied] = useState(false);
 
+  const dataUrl = rendered?.payload === payload ? rendered.url : null;
+
   useEffect(() => {
-    if (!enabled) {
-      setDataUrl(null);
-      setPayload('');
-      return;
-    }
+    if (!enabled) return;
 
-    // The form re-renders on every keystroke; a stale async render arriving
-    // late would otherwise paint a QR for an older payment.
     let cancelled = false;
-    const encoded = encodePayment(payment);
-    setPayload(encoded.payload);
-    setOverLength(encoded.overLength);
-
-    renderPayloadToDataUrl(encoded.payload)
-      .then((url) => { if (!cancelled) setDataUrl(url); })
-      .catch(() => { if (!cancelled) setDataUrl(null); });
+    renderPayloadToDataUrl(payload)
+      .then((url) => { if (!cancelled) setRendered({ url, payload }); })
+      .catch(() => { if (!cancelled) setRendered(null); });
 
     return () => { cancelled = true; };
-  }, [payment, enabled]);
+  }, [payload, enabled]);
 
   if (!enabled) {
     return (
