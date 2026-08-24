@@ -11,7 +11,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  verify:
+  node:
+    name: Node (web app + core)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -32,3 +33,65 @@ jobs:
       # Catches App Router and server/client boundary errors that neither tsc
       # nor the unit tests see.
       - run: npm run build
+
+  python:
+    name: Python ${{ matrix.python-version }}
+    runs-on: ubuntu-latest
+    strategy:
+      # One version failing should not hide the others.
+      fail-fast: false
+      matrix:
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+    defaults:
+      run:
+        working-directory: python
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: python/pyproject.toml
+
+      # pdftotext is the PDF text backend. Without it the PDF tests skip
+      # silently, which would let that whole path rot unnoticed.
+      - name: Install poppler
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends poppler-utils
+
+      - name: Install the package and its dev extras
+        run: python -m pip install --upgrade pip && python -m pip install -e ".[dev]"
+
+      # Lint only. Formatting is not enforced — the Cyrillic transliteration
+      # table is hand-aligned and a formatter would spread it over 30 lines.
+      - name: Lint
+        run: ruff check .
+
+      - name: Test
+        run: pytest -q
+
+      # A skipped test is not a passing test. The suite covers PDF extraction
+      # and QR decoding, and both depend on optional backends; if either goes
+      # missing the run must fail loudly rather than quietly shrink.
+      - name: Fail if any test was skipped
+        run: |
+          pytest -q --no-header -rs 2>&1 | tee result.txt
+          if grep -qE '[0-9]+ skipped' result.txt; then
+            echo "::error::Tests were skipped — a backend (poppler / opencv) is missing."
+            exit 1
+          fi
+
+  # Single required check for branch protection, so adding a matrix entry
+  # later does not mean editing the protection rule.
+  ci:
+    name: CI
+    if: always()
+    needs: [node, python]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify every job succeeded
+        run: |
+          echo "node:   ${{ needs.node.result }}"
+          echo "python: ${{ needs.python.result }}"
+          [ "${{ needs.node.result }}" = "success" ] || exit 1
+          [ "${{ needs.python.result }}" = "success" ] || exit 1
