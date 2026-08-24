@@ -1,0 +1,74 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    name: Verify before releasing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends poppler-utils
+      - run: python -m pip install -e "./python[dev]"
+      - run: ruff check .
+        working-directory: python
+      - run: pytest -q
+        working-directory: python
+
+      # A tag whose version does not match the manifests is a mislabelled
+      # release, and it is much cheaper to catch here than after publishing.
+      - name: Check the tag matches package.json and pyproject.toml
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          NPM=$(node -p "require('./package.json').version")
+          PY=$(grep -m1 '^version' python/pyproject.toml | cut -d'"' -f2)
+          echo "tag=$TAG npm=$NPM python=$PY"
+          if [ "$TAG" != "$NPM" ] || [ "$TAG" != "$PY" ]; then
+            echo "::error::Version mismatch — tag $TAG, package.json $NPM, pyproject.toml $PY"
+            exit 1
+          fi
+
+  release:
+    name: Publish the release
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Create the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # The changelog is the source of truth for what shipped; generated
+          # commit lists say what changed but never why it mattered.
+          awk '/^## \[/{if(seen)exit; if($0 ~ /Unreleased/) next; seen=1; next} seen' \
+            CHANGELOG.md > notes.md
+          if [ ! -s notes.md ]; then
+            echo "::error::No changelog section found for $GITHUB_REF_NAME"
+            exit 1
+          fi
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --notes-file notes.md \
+            --verify-tag
