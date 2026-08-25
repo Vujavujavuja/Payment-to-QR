@@ -302,3 +302,54 @@ body {
 .site-footer a {
   color: inherit;
 }
+
+/* --- FAQ --- */
+.faq {
+  grid-column: 1 / -1;
+}
+
+.faq-item {
+  border-top: 1px solid var(--border);
+  padding: 0.25rem 0;
+}
+
+.faq-item:first-of-type {
+  border-top: none;
+}
+
+.faq-item summary {
+  cursor: pointer;
+  padding: 0.65rem 0;
+  list-style: none;
+}
+
+.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+/* The heading lives inside <summary> so the question is a real heading for a
+   screen reader and for a crawler, not just clickable text. */
+.faq-item summary h3 {
+  display: inline;
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+}
+
+.faq-item summary::before {
+  content: '+';
+  display: inline-block;
+  width: 1.1rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.faq-item[open] summary::before {
+  content: '−';
+}
+
+.faq-item p {
+  margin: 0 0 0.85rem 1.1rem;
+  color: var(--text-muted);
+  font-size: 0.94rem;
+}
