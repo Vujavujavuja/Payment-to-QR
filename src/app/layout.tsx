@@ -7,6 +7,7 @@ import {
   SITE_TAGLINE,
   SITE_URL,
 } from '@/lib/site';
+import { ServiceWorker } from '@/components/ServiceWorker';
 import { buildStructuredData } from '@/lib/structured-data';
 import './globals.css';
 
@@ -111,6 +112,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(buildStructuredData()) }}
         />
+        <ServiceWorker />
         <div className="page">
           <header className="site-header">
             {/* The h1 carries the product name; the line under it carries the
