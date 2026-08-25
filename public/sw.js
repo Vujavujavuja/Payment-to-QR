@@ -14,7 +14,29 @@
 const VERSION = 'v1';
 const SHELL_CACHE = `p2qr-shell-${VERSION}`;
 const ASSET_CACHE = `p2qr-assets-${VERSION}`;
-const CURRENT_CACHES = [SHELL_CACHE, ASSET_CACHE];
+const OCR_CACHE = `p2qr-ocr-${VERSION}`;
+const CURRENT_CACHES = [SHELL_CACHE, ASSET_CACHE, OCR_CACHE];
+
+/**
+ * Where tesseract.js fetches its worker, its wasm core, and the Serbian and
+ * English language data. Every one of these URLs pins a version, so the
+ * content behind a given URL never changes and cache-first is safe.
+ *
+ * This is the difference between "the app opens offline" and "reading a slip
+ * works offline". The language data is tens of megabytes, which is also why
+ * it is only ever cached as a side effect of a scan the user already ran --
+ * nothing is downloaded speculatively.
+ */
+const OCR_HOST = 'cdn.jsdelivr.net';
+const OCR_PATHS = [
+  '/npm/tesseract.js@',
+  '/npm/tesseract.js-core@',
+  '/npm/@tesseract.js-data/',
+];
+
+function isOcrAsset(url) {
+  return url.hostname === OCR_HOST && OCR_PATHS.some((p) => url.pathname.startsWith(p));
+}
 
 /** Enough to boot the app with no network. Hashed bundles arrive at runtime. */
 const SHELL_URLS = ['/', '/manifest.webmanifest', '/icon.svg', '/icons/icon-192.png'];
@@ -93,6 +115,14 @@ self.addEventListener('fetch', (event) => {
   if (request.method !== 'GET') return;
 
   const url = new URL(request.url);
+
+  // The one cross-origin exception. jsdelivr sends permissive CORS headers,
+  // so these are real inspectable responses rather than opaque ones.
+  if (isOcrAsset(url)) {
+    event.respondWith(cacheFirst(request, OCR_CACHE));
+    return;
+  }
+
   if (url.origin !== self.location.origin) return;
 
   // Never cache the extraction endpoint. A cached "available: false" would
