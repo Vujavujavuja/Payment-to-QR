@@ -1,0 +1,56 @@
+# Payment to QR
+
+> Free, open source generator for NBS IPS QR codes. Photograph a Serbian payment
+> slip, invoice or bill, check the extracted fields, and get a QR code you can
+> scan in any Serbian banking app.
+
+Payment to QR converts a payment document into an NBS IPS QR payload. It does
+not move money, hold funds, connect to a bank, or ask for credentials. Your
+banking app performs the payment after you review and confirm it there.
+
+The project is unofficial and independent. It is not affiliated with or endorsed
+by the National Bank of Serbia (Narodna banka Srbije).
+
+## How it works
+
+1. Photograph a payment slip (uplatnica), invoice, bill or screenshot.
+2. Text is extracted — by default with OCR that runs in your browser, so the
+   image never leaves your device. An optional Claude vision extractor is more
+   accurate but sends the image to a server, and is off by default.
+3. The extracted fields appear in a form. Fields the extractor was unsure about
+   are flagged for review. This step cannot be skipped.
+4. The payment is validated, including the account's mod 97-10 control digits.
+5. A scannable IPS QR code is rendered — but only once validation passes.
+
+## Key facts
+
+- Licence: MIT. Free to use, modify and self-host.
+- Price: free. There is no paid tier, account, or signup.
+- Privacy: default extraction is on-device. Nothing is stored or logged.
+- Two implementations of the same specification: TypeScript (`src/core`) and
+  Python (`python/ips_qr`), with mirrored test suites.
+- The Python package installs a CLI: `ips-qr --pdf racun.pdf --png qr.png`.
+- Scripts: Serbian Cyrillic and Latin are both handled, including documents
+  that mix them on one page.
+- Known limitation: generated codes are not verified against the official NBS
+  validator, and OCR on photographed slips is unreliable — which is precisely
+  why a human review step exists.
+
+## The payload format
+
+An IPS QR code is a flat, pipe-separated string of tagged fields:
+
+K:PR|V:01|C:1|R:265000123456789098|N:Elektrodistribucija Beograd|I:RSD3450,00|SF:189
+
+K identification code, V version, C character set, R recipient account (18
+digits), N recipient name, I amount, P payer name, SF payment code, S purpose,
+RO reference model and number.
+
+## Links
+
+- Source code: https://github.com/Vujavujavuja/Payment-to-QR
+- README: https://github.com/Vujavujavuja/Payment-to-QR#readme
+- Contributing: https://github.com/Vujavujavuja/Payment-to-QR/blob/main/CONTRIBUTING.md
+- Security policy: https://github.com/Vujavujavuja/Payment-to-QR/blob/main/SECURITY.md
+- Changelog: https://github.com/Vujavujavuja/Payment-to-QR/blob/main/CHANGELOG.md
+- Python library docs: https://github.com/Vujavujavuja/Payment-to-QR/blob/main/python/README.md
