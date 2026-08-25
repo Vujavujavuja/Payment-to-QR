@@ -36,6 +36,17 @@ by the National Bank of Serbia (Narodna banka Srbije).
   validator, and OCR on photographed slips is unreliable — which is precisely
   why a human review step exists.
 
+## Offline and installation
+
+It is a progressive web app and can be installed to a phone's home screen.
+
+- Typing a payment in and generating a QR code works with no connection at all.
+- Reading a slip with on-device OCR works offline after one scan made while
+  online, which is when the language data is downloaded and cached.
+- The optional Claude vision extractor always requires a connection.
+
+Nothing is downloaded speculatively; the language data arrives only if you scan.
+
 ## The payload format
 
 An IPS QR code is a flat, pipe-separated string of tagged fields:

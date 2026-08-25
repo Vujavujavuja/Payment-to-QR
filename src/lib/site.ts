@@ -104,6 +104,16 @@ export const FAQ: { question: string; answer: string }[] = [
       'including the account control digits.',
   },
   {
+    question: 'Does it work offline, and can I install it on my phone?',
+    answer:
+      'Yes to both. It installs to a home screen from your browser and runs in its own ' +
+      'window. Typing a payment in and generating a QR code works with no connection at ' +
+      'all, because the encoding and QR rendering happen entirely on your device. Reading ' +
+      'a slip with the camera also works offline, but only after you have scanned ' +
+      'something once while online — the first scan downloads the Serbian and English ' +
+      'language data. The optional Claude extractor always needs a connection.',
+  },
+  {
     question: 'Is this an official National Bank of Serbia application?',
     answer:
       'No. It is an unofficial, independent open source project, not affiliated with or ' +

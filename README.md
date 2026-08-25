@@ -77,6 +77,30 @@ put a rate limit in front of that route first. See
 
 </details>
 
+## Install it on a phone
+
+It is a progressive web app. Open it in a browser and use **Add to Home Screen**
+(Safari) or **Install app** (Chrome). It then launches in its own window with no
+browser chrome, which matters when you are holding a bill in the other hand.
+
+### What works with no connection
+
+| | Offline |
+| --- | --- |
+| Typing a payment in and generating a QR code | Always |
+| Downloading the code as PNG or SVG | Always |
+| Reading a slip with on-device OCR | After one scan made while online |
+| Claude vision extraction | Never — it is a server call by definition |
+
+Encoding, validation and QR rendering are pure client-side code, so the first
+row needs no network at any point. The second needs one online scan first,
+because that is when the Serbian and English language data is downloaded and
+cached.
+
+Nothing is downloaded speculatively: install the app and it costs you the page.
+The tens of megabytes of language data arrive only if you actually scan
+something.
+
 ## Two implementations
 
 The same specification, twice, with test suites that mirror each other.
@@ -235,6 +259,17 @@ until the payment validates, including the account control digits.
 </details>
 
 <details>
+<summary><strong>Does it work offline?</strong></summary>
+
+Typing a payment in and generating a QR code works with no connection at all —
+the encoding and rendering happen on your device. Reading a slip with OCR works
+offline too, but only after one scan made while online, which is when the
+language data is downloaded. The optional Claude extractor always needs a
+connection.
+
+</details>
+
+<details>
 <summary><strong>Is this an official National Bank of Serbia application?</strong></summary>
 
 No. It is unofficial and independent, not affiliated with or endorsed by the
@@ -255,6 +290,10 @@ osim ako sami ne uključite Claude ekstraktor.
 Program **ne vrši plaćanje** i ne traži pristup vašem računu. Broj računa se
 proverava kontrolnim ciframa (mod 97-10), a QR kod se ne generiše dok podaci
 nisu ispravni. Podržana su oba pisma, ćirilica i latinica.
+
+Aplikaciju možete **instalirati na telefon** (Dodaj na početni ekran). Unos
+podataka i generisanje QR koda rade **i bez interneta**. Čitanje uplatnice bez
+interneta radi nakon prvog skeniranja sa vezom, kada se preuzmu jezički podaci.
 
 Projekat je nezvaničan i nije povezan sa Narodnom bankom Srbije. Uvek proverite
 iznos i broj računa u svojoj banci pre plaćanja.
