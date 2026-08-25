@@ -68,6 +68,15 @@ export const metadata: Metadata = {
     },
   },
 
+  // Safari still ignores most of the manifest, so the standalone behaviour
+  // iOS users get comes from these rather than from manifest.ts.
+  appleWebApp: {
+    capable: true,
+    title: SITE_NAME,
+    // The header is light and the status bar sits directly above it.
+    statusBarStyle: 'default',
+  },
+
   // Points at the source. For an open source tool this is the single most
   // useful link a machine can find on the page.
   other: { 'repository': REPO_URL },
@@ -78,6 +87,14 @@ export const viewport: Viewport = {
   initialScale: 1,
   // The page is used one-handed while holding a bill; let people zoom.
   maximumScale: 5,
+  // Installed, this paints the status bar and the window chrome. Two entries
+  // so a dark-mode phone does not get a light bar above a dark page.
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f6f7f9' },
+    { media: '(prefers-color-scheme: dark)', color: '#12151a' },
+  ],
+  // Keep content clear of the notch and the home indicator when installed.
+  viewportFit: 'cover',
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
