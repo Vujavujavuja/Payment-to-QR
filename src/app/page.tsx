@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Faq } from '@/components/Faq';
 import { ImageDropzone } from '@/components/ImageDropzone';
 import { PaymentForm } from '@/components/PaymentForm';
 import { QrPreview } from '@/components/QrPreview';
@@ -148,6 +149,8 @@ export default function Home() {
         <h2>3 · Scan to pay</h2>
         <QrPreview payment={payment} enabled={validation.valid} />
       </section>
+
+      <Faq />
     </main>
   );
 }

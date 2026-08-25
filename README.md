@@ -1,7 +1,9 @@
 <h1 align="center">Payment to QR</h1>
 
 <p align="center">
-  <strong>Photograph a Serbian payment slip. Get a QR code you can pay from any banking app.</strong>
+  <strong>Photograph a Serbian payment slip. Get an NBS IPS QR code you can pay from any banking app.</strong>
+  <br>
+  <sub>Generator IPS QR koda &middot; uplatnica u QR kod &middot; besplatno i otvorenog koda</sub>
 </p>
 
 <p align="center">
@@ -189,6 +191,73 @@ python/
   ips_qr/        The port: core, extraction, PDF backend, CLI
   tests/         71 tests, including a render-and-decode round trip
 ```
+
+## Questions
+
+<details>
+<summary><strong>What is an NBS IPS QR code?</strong></summary>
+
+The QR code standard defined by the National Bank of Serbia (Narodna banka
+Srbije) for instant payments. Scanning one in a Serbian banking app fills in
+the recipient account, amount, payment code and reference automatically. The
+code itself is a flat pipe-separated string of tagged fields.
+
+</details>
+
+<details>
+<summary><strong>Does this move money or make a payment?</strong></summary>
+
+No. It only encodes payment instructions into a QR code. Nothing is
+transferred, no bank connection exists, and no account credentials are ever
+requested. Your banking app performs the payment after you review and confirm
+it there.
+
+</details>
+
+<details>
+<summary><strong>Is it free, and does my document leave my device?</strong></summary>
+
+Free and open source under the MIT licence. The default extractor runs OCR in
+your browser, so the image never leaves your device. The optional Claude vision
+extractor is more accurate but sends the image to a server, which is why it is
+opt-in and off by default.
+
+</details>
+
+<details>
+<summary><strong>Why do I have to check the fields myself?</strong></summary>
+
+Because extraction is unreliable by nature — OCR misreads digits and vision
+models transcribe a `7` as a `1`. A wrong digit sends money to a stranger.
+Fields the extractor was unsure about are flagged, and no QR code is rendered
+until the payment validates, including the account control digits.
+
+</details>
+
+<details>
+<summary><strong>Is this an official National Bank of Serbia application?</strong></summary>
+
+No. It is unofficial and independent, not affiliated with or endorsed by the
+National Bank of Serbia. Always confirm the amount and recipient account in
+your banking app before paying.
+
+</details>
+
+## Ukratko na srpskom
+
+**Payment to QR** pretvara uplatnicu, račun ili fakturu u **IPS QR kod** koji
+možete skenirati u bilo kojoj srpskoj bankarskoj aplikaciji.
+
+Slikajte uplatnicu, proverite podatke koje je program pročitao, i dobijate QR
+kod za plaćanje. Tekst se čita **na vašem uređaju** — slika ne napušta telefon
+osim ako sami ne uključite Claude ekstraktor.
+
+Program **ne vrši plaćanje** i ne traži pristup vašem računu. Broj računa se
+proverava kontrolnim ciframa (mod 97-10), a QR kod se ne generiše dok podaci
+nisu ispravni. Podržana su oba pisma, ćirilica i latinica.
+
+Projekat je nezvaničan i nije povezan sa Narodnom bankom Srbije. Uvek proverite
+iznos i broj računa u svojoj banci pre plaćanja.
 
 ## Contributing
 
