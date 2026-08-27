@@ -41,5 +41,27 @@ export default function manifest(): MetadataRoute.Manifest {
       },
       { src: '/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },
     ],
+    // Android shows a richer install dialog when screenshots are present, and
+    // falls back to a bare one when they are not. Both form factors are
+    // supplied because it picks by the device asking.
+    //
+    // Both show a generated code rather than an empty form: the install
+    // prompt is where someone decides whether this does anything useful.
+    screenshots: [
+      {
+        src: '/screenshots/mobile.png',
+        sizes: '780x1688',
+        type: 'image/png',
+        form_factor: 'narrow',
+        label: 'A payment slip converted into a scannable IPS QR code on a phone',
+      },
+      {
+        src: '/screenshots/desktop.png',
+        sizes: '1280x800',
+        type: 'image/png',
+        form_factor: 'wide',
+        label: 'The payment form beside the generated IPS QR code',
+      },
+    ],
   };
 }
