@@ -7,6 +7,7 @@ import {
   SITE_TAGLINE,
   SITE_URL,
 } from '@/lib/site';
+import { InstallPrompt } from '@/components/InstallPrompt';
 import { ServiceWorker } from '@/components/ServiceWorker';
 import { buildStructuredData } from '@/lib/structured-data';
 import './globals.css';
@@ -114,6 +115,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
         <ServiceWorker />
         <div className="page">
+          <InstallPrompt />
           <header className="site-header">
             {/* The h1 carries the product name; the line under it carries the
                 words people actually search for -- "NBS IPS QR", "payment
