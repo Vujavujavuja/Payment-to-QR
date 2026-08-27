@@ -1,6 +1,12 @@
 import { NextResponse } from 'next/server';
 import { ClaudeExtractor } from '@/extract/providers/claude';
 import { ExtractionError } from '@/extract/types';
+import {
+  GLOBAL_KEY,
+  clientKeyFromHeaders,
+  extractionLimiter,
+  globalExtractionLimiter,
+} from '@/lib/rate-limit';
 
 // Buffer and the Anthropic SDK need the Node runtime, not Edge.
 export const runtime = 'nodejs';
@@ -18,8 +24,36 @@ const MAX_IMAGE_BYTES = 3.5 * 1024 * 1024;
  * and never needs a round trip. The API key stays server-side; it is never
  * shipped to the client.
  */
+function tooManyRequests(retryAfterSeconds: number, message: string) {
+  return NextResponse.json(
+    { error: message, code: 'rate_limited' },
+    { status: 429, headers: { 'Retry-After': String(retryAfterSeconds) } },
+  );
+}
+
 export async function POST(request: Request) {
   const extractor = new ClaudeExtractor();
+
+  // Rate limiting comes before anything else that costs money or memory:
+  // every request past this point either buffers an image or bills an API
+  // call. Both limits are checked because they stop different things -- one
+  // caller hammering the endpoint, and many callers each staying politely
+  // under the per-caller limit while the bill still climbs.
+  const perClient = extractionLimiter.check(clientKeyFromHeaders(request.headers));
+  if (!perClient.allowed) {
+    return tooManyRequests(
+      perClient.retryAfterSeconds,
+      'Too many extraction requests from this address. Try again later, or use on-device OCR, which has no limit.',
+    );
+  }
+
+  const global = globalExtractionLimiter.check(GLOBAL_KEY);
+  if (!global.allowed) {
+    return tooManyRequests(
+      global.retryAfterSeconds,
+      'This server has reached its extraction limit for now. Try again later, or use on-device OCR, which has no limit.',
+    );
+  }
 
   if (!extractor.isAvailable()) {
     return NextResponse.json(
@@ -81,7 +115,13 @@ export async function POST(request: Request) {
   }
 }
 
-/** Lets the client show or hide the Claude option without attempting an upload. */
+/**
+ * Lets the client show or hide the Claude option without attempting an upload.
+ *
+ * Not rate limited on purpose: it runs on every page load, costs nothing, and
+ * reaches no third party. Throttling it would break the UI for the honest
+ * case while saving nothing worth saving.
+ */
 export async function GET() {
   return NextResponse.json({ available: new ClaudeExtractor().isAvailable() });
 }
