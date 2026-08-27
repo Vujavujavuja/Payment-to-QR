@@ -70,10 +70,15 @@ Note the tradeoff: this **sends the image to Anthropic**, and a payment slip
 usually carries a name, an address, and an account number. It is opt-in for
 that reason, and the key stays server-side — it is never shipped to the browser.
 
-⚠️ **`/api/extract` has no rate limit.** It spends your Anthropic credit, one
-call per request, with no authentication. If you deploy this anywhere public,
-put a rate limit in front of that route first. See
-[#8](https://github.com/Vujavujavuja/Payment-to-QR/issues/8).
+⚠️ **`/api/extract` costs you money per request.** It is rate limited — 10 per
+caller per hour and 100 overall by default, tunable with `EXTRACT_RATE_LIMIT`,
+`EXTRACT_RATE_LIMIT_GLOBAL` and `EXTRACT_RATE_WINDOW_MS`.
+
+Treat that as a courtesy limit, not a security boundary: the caller's address
+comes from a client-supplied header, and the counters live in process memory,
+so a host running several instances gives each its own. If you deploy publicly
+with a key configured, set the global limit to a number you would not mind
+paying, and reach for a shared store if you need a real guarantee.
 
 </details>
 

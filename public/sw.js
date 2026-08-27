@@ -11,6 +11,9 @@
  * user with no signal and a working payment code is the app shell.
  */
 
+// Bumping this discards every cache, including tens of megabytes of OCR
+// language data the user already downloaded. Change it only when a cached
+// response would actually be wrong, not merely stale.
 const VERSION = 'v1';
 const SHELL_CACHE = `p2qr-shell-${VERSION}`;
 const ASSET_CACHE = `p2qr-assets-${VERSION}`;
@@ -49,9 +52,15 @@ self.addEventListener('install', (event) => {
       // URL fails, which would leave the app with no worker at all over a
       // single missing icon.
       await Promise.allSettled(SHELL_URLS.map((url) => cache.add(url)));
-      await self.skipWaiting();
+      // Deliberately no skipWaiting here. A new worker waits until the page
+      // asks for it, so a version swap happens when the user chooses rather
+      // than underneath a payment they are in the middle of checking.
     })(),
   );
+});
+
+self.addEventListener('message', (event) => {
+  if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
