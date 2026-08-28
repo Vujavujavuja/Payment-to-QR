@@ -66,24 +66,35 @@ const ACCOUNT_PATTERN = /\b\d{3}[-\s]?\d{1,13}[-\s]?\d{2}\b|\b\d{18}\b/g;
 /**
  * Labels that introduce a field, each as a list tried in order.
  *
- * A tuple rather than one alternation because order will shortly carry
- * meaning: the first pattern that matches anywhere wins, before a later one
- * is considered at all. Splitting the alternations is the enabling change;
- * the contents are unchanged here, so behaviour is not.
+ * Priority is what separates a label from a false friend, and the first
+ * pattern to match anywhere wins before a later one is tried at all.
+ *
+ * The patterns deliberately have no trailing word boundary: Serbian inflects
+ * its labels, so "iznos" also appears as "iznosu" and "svrha" as "svrhu".
  */
 const LABELS = {
   recipientAccount: [
-    /\bracun\s+primaoca\b/,
-    /\bracun\s+za\s+uplatu\b/,
-    /\bprimalac\s+racun\b/,
+    /\bracun\s+primaoca/,
+    /\bracun\s+za\s+uplatu/,
+    /\bprimalac\s+racun/,
+    /\bna\s+racun(\s+broj)?/,
+    /\bracun\s+broj/,
   ],
-  recipientName: [/\bprimalac\b/, /\bpoverilac\b/, /\bkorisnik\b/],
-  payerName: [/\bplatilac\b/, /\buplatilac\b/, /\bduznik\b/],
-  amount: [/\biznos\b/, /\bukupno\b/, /\bza\s+uplatu\b/, /\bsvega\b/],
-  paymentCode: [/\bsifra\s+placanja\b/, /\bsifra\b/],
-  purpose: [/\bsvrha(\s+placanja|\s+uplate)?\b/],
-  referenceModel: [/\bmodel\b/],
-  referenceNumber: [/\bpoziv\s+na\s+broj\b/, /\bpozivnabroj\b/, /\bpnb\b/],
+  // "u korist" is unambiguous. "korisnik" is a real label on a bank slip but
+  // means the *driver* on a police summons, where it appears first, so it is
+  // tried last rather than blacklisted.
+  recipientName: [/\bu\s+korist/, /\bprimalac/, /\bpoverilac/, /\bkorisnik/],
+  payerName: [/\bplatilac/, /\buplatilac/, /\bduznik/],
+  amount: [/\bza\s+uplatu/, /\bnovcan[aou]\s+kazn[aeiu]/, /\biznos/, /\bukupno/, /\bsvega/],
+  paymentCode: [/\bsifra\s+placanja/, /\bsifra/],
+  purpose: [/\bu\s+svrhu\s+placanja/, /\bsvrh[au]/],
+  referenceModel: [/\bmodel/],
+  referenceNumber: [
+    /\bsa\s+pozivom\s+na\s+broj/,
+    /\bpoziv\s+na\s+broj/,
+    /\bpozivnabroj/,
+    /\bpnb/,
+  ],
 } as const;
 
 /** Every pattern, for "is this line just another label" checks. */
