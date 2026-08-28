@@ -16,15 +16,48 @@ const CYRILLIC_TO_LATIN: Record<string, string> = {
   ч: 'c', џ: 'dz', ш: 's',
 };
 
+const LATIN_DIACRITICS: Record<string, string> = { š: 's', ć: 'c', č: 'c', ž: 'z', đ: 'dj' };
+
+function foldChar(ch: string): string {
+  const lower = ch.toLowerCase();
+  return CYRILLIC_TO_LATIN[lower] ?? LATIN_DIACRITICS[lower] ?? lower;
+}
+
 /** Fold script and diacritics so `šifra`, `sifra` and `шифра` all match one pattern. */
 export function foldScript(input: string): string {
-  return input
-    .toLowerCase()
-    .replace(/[а-џ]/g, (ch) => CYRILLIC_TO_LATIN[ch] ?? ch)
-    .replace(/š/g, 's')
-    .replace(/ć|č/g, 'c')
-    .replace(/ž/g, 'z')
-    .replace(/đ/g, 'dj');
+  let folded = '';
+  for (const ch of input) folded += foldChar(ch);
+  return folded;
+}
+
+/**
+ * Fold, and return a map from each folded index back to the raw index.
+ *
+ * Folding is *not* length-preserving — `ђ`, `љ`, `њ` and `џ` each become two
+ * Latin characters. An offset found in the folded string is therefore not an
+ * offset into the raw string, and slicing one with the other silently
+ * misplaces text. `БУЏЕТ` alone is enough to shift everything after it.
+ *
+ * `offsets[folded.length]` is a sentinel holding the raw length, so a caller
+ * can map an exclusive end index without a bounds check.
+ */
+export function foldWithOffsets(input: string): { folded: string; offsets: number[] } {
+  let folded = '';
+  const offsets: number[] = [];
+  let rawIndex = 0;
+
+  for (const ch of input) {
+    for (const foldedChar of foldChar(ch)) {
+      folded += foldedChar;
+      offsets.push(rawIndex);
+    }
+    // Not 1: iterating a string yields code points, and an astral character
+    // occupies two UTF-16 units in the raw string we will slice.
+    rawIndex += ch.length;
+  }
+
+  offsets.push(input.length);
+  return { folded, offsets };
 }
 
 /** Any 18-digit account, hyphenated or not. */
