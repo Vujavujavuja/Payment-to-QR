@@ -84,3 +84,24 @@ describe('Cyrillic offsets in a real document', () => {
     expect(extractPaymentFromText(text, 'test').payment.recipientAccount).toBe(BUDGET_ACCOUNT);
   });
 });
+
+describe('label priority', () => {
+  it('prefers "u korist" over the driver sense of "korisnik"', () => {
+    // "кориснику возила" appears well before "у корист" in the summons.
+    // Scanning line by line without priority returns the car instead.
+    const result = extractPaymentFromText(SUMMONS, 'test');
+    expect(result.payment.recipientName).toMatch(/^БУЏЕТ РЕПУБЛИКЕ СРБИЈЕ/);
+    expect(result.payment.recipientName).not.toMatch(/AUDI|возила/);
+  });
+
+  it('still honours "korisnik" when nothing more specific is present', () => {
+    const result = extractPaymentFromText('korisnik: EPS Snabdevanje', 'test');
+    expect(result.payment.recipientName).toBe('EPS Snabdevanje');
+  });
+
+  it('matches an inflected label', () => {
+    // "iznosu", not "iznos" — a trailing \b would miss it.
+    const result = extractPaymentFromText('u fiksnom iznosu od 10000 dinara', 'test');
+    expect(result.payment.amount).toBe('10000.00');
+  });
+});
