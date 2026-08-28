@@ -193,8 +193,13 @@ function findAccount(text: string, lines: Line[]): { value: string; confidence: 
   return null;
 }
 
+function parsesAsPositiveAmount(value: string): boolean {
+  const normalized = normalizeAmount(value);
+  return normalized !== null && Number(normalized) > 0;
+}
+
 function findAmount(lines: Line[]): { value: string; confidence: number } | null {
-  const labelled = valueForLabel(lines, LABELS.amount);
+  const labelled = valueForLabel(lines, LABELS.amount, parsesAsPositiveAmount);
   if (labelled) {
     const normalized = normalizeAmount(labelled);
     if (normalized && Number(normalized) > 0) return { value: normalized, confidence: 0.8 };
