@@ -90,7 +90,7 @@ describe('label priority', () => {
     // "кориснику возила" appears well before "у корист" in the summons.
     // Scanning line by line without priority returns the car instead.
     const result = extractPaymentFromText(SUMMONS, 'test');
-    expect(result.payment.recipientName).toMatch(/^БУЏЕТ РЕПУБЛИКЕ СРБИЈЕ/);
+    expect(result.payment.recipientName).toBe('БУЏЕТ РЕПУБЛИКЕ СРБИЈЕ');
     expect(result.payment.recipientName).not.toMatch(/AUDI|возила/);
   });
 
@@ -103,5 +103,25 @@ describe('label priority', () => {
     // "iznosu", not "iznos" — a trailing \b would miss it.
     const result = extractPaymentFromText('u fiksnom iznosu od 10000 dinara', 'test');
     expect(result.payment.amount).toBe('10000.00');
+  });
+});
+
+describe('several labels on one line', () => {
+  it('stops the recipient where the purpose label begins', () => {
+    const result = extractPaymentFromText(SUMMONS, 'test');
+    expect(result.payment.recipientName).not.toMatch(/сврху|плаћања/);
+  });
+
+  it('stops the purpose where the account label begins', () => {
+    const result = extractPaymentFromText(SUMMONS, 'test');
+    expect(result.payment.purpose ?? '').not.toMatch(/рачун|840/);
+  });
+
+  it('splits a Latin line carrying three labels', () => {
+    const line = 'u korist: BUDZET REPUBLIKE SRBIJE, u svrhu placanja: KAZNA na racun broj 840-743324843-18';
+    const result = extractPaymentFromText(line, 'test');
+    expect(result.payment.recipientName).toBe('BUDZET REPUBLIKE SRBIJE');
+    expect(result.payment.purpose).toBe('KAZNA');
+    expect(result.payment.recipientAccount).toBe(BUDGET_ACCOUNT);
   });
 });
