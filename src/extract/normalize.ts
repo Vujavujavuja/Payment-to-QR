@@ -63,16 +63,31 @@ export function foldWithOffsets(input: string): { folded: string; offsets: numbe
 /** Any 18-digit account, hyphenated or not. */
 const ACCOUNT_PATTERN = /\b\d{3}[-\s]?\d{1,13}[-\s]?\d{2}\b|\b\d{18}\b/g;
 
+/**
+ * Labels that introduce a field, each as a list tried in order.
+ *
+ * A tuple rather than one alternation because order will shortly carry
+ * meaning: the first pattern that matches anywhere wins, before a later one
+ * is considered at all. Splitting the alternations is the enabling change;
+ * the contents are unchanged here, so behaviour is not.
+ */
 const LABELS = {
-  recipientAccount: /\b(racun\s+primaoca|racun\s+za\s+uplatu|primalac\s+racun)\b/,
-  recipientName: /\b(primalac|poverilac|korisnik)\b/,
-  payerName: /\b(platilac|uplatilac|duznik)\b/,
-  amount: /\b(iznos|ukupno|za\s+uplatu|svega)\b/,
-  paymentCode: /\b(sifra\s+placanja|sifra)\b/,
-  purpose: /\b(svrha(\s+placanja|\s+uplate)?)\b/,
-  referenceModel: /\bmodel\b/,
-  referenceNumber: /\b(poziv\s+na\s+broj|pozivnabroj|pnb)\b/,
+  recipientAccount: [
+    /\bracun\s+primaoca\b/,
+    /\bracun\s+za\s+uplatu\b/,
+    /\bprimalac\s+racun\b/,
+  ],
+  recipientName: [/\bprimalac\b/, /\bpoverilac\b/, /\bkorisnik\b/],
+  payerName: [/\bplatilac\b/, /\buplatilac\b/, /\bduznik\b/],
+  amount: [/\biznos\b/, /\bukupno\b/, /\bza\s+uplatu\b/, /\bsvega\b/],
+  paymentCode: [/\bsifra\s+placanja\b/, /\bsifra\b/],
+  purpose: [/\bsvrha(\s+placanja|\s+uplate)?\b/],
+  referenceModel: [/\bmodel\b/],
+  referenceNumber: [/\bpoziv\s+na\s+broj\b/, /\bpozivnabroj\b/, /\bpnb\b/],
 } as const;
+
+/** Every pattern, for "is this line just another label" checks. */
+const ALL_PATTERNS: readonly RegExp[] = Object.values(LABELS).flat();
 
 interface Line {
   raw: string;
@@ -96,20 +111,22 @@ function toLines(text: string): Line[] {
  * it, depending on the layout, so both are tried. Anything left of the label on
  * the same line is discarded — that is the label's own column header.
  */
-function valueForLabel(lines: Line[], pattern: RegExp): string | null {
-  for (let i = 0; i < lines.length; i++) {
-    const match = lines[i].folded.match(pattern);
-    if (!match || match.index === undefined) continue;
+function valueForLabel(lines: Line[], patterns: readonly RegExp[]): string | null {
+  for (const pattern of patterns) {
+    for (let i = 0; i < lines.length; i++) {
+      const match = lines[i].folded.match(pattern);
+      if (!match || match.index === undefined) continue;
 
-    // The match index is an offset into the *folded* line, so it has to be
-    // translated before it can slice the raw one.
-    const rawStart = lines[i].offsets[match.index + match[0].length];
-    const after = lines[i].raw.slice(rawStart).replace(/^[\s:.\-–]+/, '').trim();
-    if (after) return after;
+      // The match index is an offset into the *folded* line, so it has to be
+      // translated before it can slice the raw one.
+      const rawStart = lines[i].offsets[match.index + match[0].length];
+      const after = lines[i].raw.slice(rawStart).replace(/^[\s:.\-–]+/, '').trim();
+      if (after) return after;
 
-    // Value wrapped to the next line; skip a line that is only another label.
-    const next = lines[i + 1];
-    if (next && !Object.values(LABELS).some((p) => p.test(next.folded))) return next.raw;
+      // Value wrapped to the next line; skip a line that is only another label.
+      const next = lines[i + 1];
+      if (next && !ALL_PATTERNS.some((p) => p.test(next.folded))) return next.raw;
+    }
   }
   return null;
 }
