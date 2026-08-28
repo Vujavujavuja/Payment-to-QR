@@ -125,3 +125,18 @@ describe('several labels on one line', () => {
     expect(result.payment.recipientAccount).toBe(BUDGET_ACCOUNT);
   });
 });
+
+describe('finding the amount in prose', () => {
+  it('walks past a label that has no number after it', () => {
+    // "novcana kazna" matches first, but the text up to the next label is
+    // "u fiksnom" — the digits live after "iznosu", further along the line.
+    const text = 'za koji je propisana novcana kazna u fiksnom iznosu od 10000 dinara.';
+    expect(extractPaymentFromText(text, 'test').payment.amount).toBe('10000.00');
+  });
+
+  it('reports the fine from the summons with label confidence, not a guess', () => {
+    const result = extractPaymentFromText(SUMMONS, 'test');
+    expect(result.payment.amount).toBe('10000.00');
+    expect(result.confidence.amount).toBe(0.8);
+  });
+});
