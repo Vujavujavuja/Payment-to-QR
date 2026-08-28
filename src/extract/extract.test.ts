@@ -140,3 +140,21 @@ describe('finding the amount in prose', () => {
     expect(result.confidence.amount).toBe(0.8);
   });
 });
+
+describe('dates are not amounts', () => {
+  it.each(['30.04.2027', '1.1.2026', '12.08.2026.'])('does not read %s as an amount', (date) => {
+    const result = extractPaymentFromText(`datum vazenja ${date}`, 'test');
+    expect(result.payment.amount).toBeUndefined();
+  });
+
+  it('still finds a real amount on a page that also carries dates', () => {
+    const text = ['datum vazenja 30.04.2027', 'ukupno 3.450,00'].join('\n');
+    expect(extractPaymentFromText(text, 'test').payment.amount).toBe('3450.00');
+  });
+
+  it('picks the largest genuine amount, not the largest date', () => {
+    const text = ['30.04.2027', '1.234,50', '900,00'].join('\n');
+    // Unguarded, the date normalises to 30042027.00 and wins outright.
+    expect(extractPaymentFromText(text, 'test').payment.amount).toBe('1234.50');
+  });
+});
