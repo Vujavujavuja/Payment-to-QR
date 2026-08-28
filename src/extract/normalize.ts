@@ -276,25 +276,34 @@ export function extractPaymentFromText(text: string, provider: string): Extracti
     confidence.purpose = 0.6;
   }
 
-  const paymentCode = valueForLabel(lines, LABELS.paymentCode);
+  // Numeric fields carry an exact-width predicate rather than truncating
+  // whatever the label happened to sit next to, so the search walks past a
+  // false friend instead of recording something merely shaped right.
+  const paymentCode = valueForLabel(
+    lines,
+    LABELS.paymentCode,
+    (value) => digitsOnly(value).length === 3,
+  );
   if (paymentCode) {
-    const code = digitsOnly(paymentCode).slice(0, 3);
-    if (code.length === 3) {
-      payment.paymentCode = code;
-      confidence.paymentCode = 0.7;
-    }
+    payment.paymentCode = digitsOnly(paymentCode);
+    confidence.paymentCode = 0.7;
   }
 
-  const model = valueForLabel(lines, LABELS.referenceModel);
+  const model = valueForLabel(
+    lines,
+    LABELS.referenceModel,
+    (value) => digitsOnly(value).length === 2,
+  );
   if (model) {
-    const digits = digitsOnly(model).slice(0, 2);
-    if (digits.length === 2) {
-      payment.referenceModel = digits;
-      confidence.referenceModel = 0.6;
-    }
+    payment.referenceModel = digitsOnly(model);
+    confidence.referenceModel = 0.6;
   }
 
-  const reference = valueForLabel(lines, LABELS.referenceNumber);
+  const reference = valueForLabel(
+    lines,
+    LABELS.referenceNumber,
+    (value) => digitsOnly(value).length >= 3,
+  );
   if (reference) {
     const cleaned = sanitizeText(reference, IPS_FIELD_LIMITS.referenceNumber).replace(/[^\d-]/g, '');
     if (cleaned) {
