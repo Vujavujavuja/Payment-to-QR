@@ -158,3 +158,38 @@ describe('dates are not amounts', () => {
     expect(extractPaymentFromText(text, 'test').payment.amount).toBe('1234.50');
   });
 });
+
+describe('numeric fields demand the right shape', () => {
+  it('does not read a car model as a reference model', () => {
+    const text = [
+      'korisniku vozila marke AUDI A3 model LIMOUSINE, oznake PA275-VE',
+      'sa pozivom na broj 08501265012043052 model',
+      '97.',
+    ].join('\n');
+    const result = extractPaymentFromText(text, 'test');
+    expect(result.payment.referenceModel).toBe('97');
+  });
+
+  it('leaves the reference model empty rather than guessing from a plate', () => {
+    const result = extractPaymentFromText('vozila marke AUDI A3 model LIMOUSINE', 'test');
+    expect(result.payment.referenceModel).toBeUndefined();
+  });
+
+  it('takes a three digit payment code and refuses anything else', () => {
+    expect(extractPaymentFromText('sifra placanja: 189', 'test').payment.paymentCode).toBe('189');
+    expect(extractPaymentFromText('sifra placanja: 18', 'test').payment.paymentCode).toBeUndefined();
+  });
+
+  it('does not invent a payment code for a document that states none', () => {
+    // Nothing on a summons gives a sifra placanja. Guessing one would be the
+    // single most dangerous thing this module could do.
+    const result = extractPaymentFromText(SUMMONS, 'test');
+    expect(result.payment.paymentCode).toBeUndefined();
+  });
+
+  it('finds the model and reference in the summons', () => {
+    const result = extractPaymentFromText(SUMMONS, 'test');
+    expect(result.payment.referenceModel).toBe('97');
+    expect(result.payment.referenceNumber).toBe('26501000000000000');
+  });
+});
