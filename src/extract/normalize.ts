@@ -77,6 +77,8 @@ const LABELS = {
 interface Line {
   raw: string;
   folded: string;
+  /** folded index -> raw index, with a sentinel at folded.length. */
+  offsets: number[];
 }
 
 function toLines(text: string): Line[] {
@@ -84,7 +86,7 @@ function toLines(text: string): Line[] {
     .split(/\r?\n/)
     .map((raw) => raw.trim())
     .filter(Boolean)
-    .map((raw) => ({ raw, folded: foldScript(raw) }));
+    .map((raw) => ({ raw, ...foldWithOffsets(raw) }));
 }
 
 /**
@@ -99,7 +101,10 @@ function valueForLabel(lines: Line[], pattern: RegExp): string | null {
     const match = lines[i].folded.match(pattern);
     if (!match || match.index === undefined) continue;
 
-    const after = lines[i].raw.slice(match.index + match[0].length).replace(/^[\s:.\-–]+/, '').trim();
+    // The match index is an offset into the *folded* line, so it has to be
+    // translated before it can slice the raw one.
+    const rawStart = lines[i].offsets[match.index + match[0].length];
+    const after = lines[i].raw.slice(rawStart).replace(/^[\s:.\-–]+/, '').trim();
     if (after) return after;
 
     // Value wrapped to the next line; skip a line that is only another label.
