@@ -193,6 +193,12 @@ function findAccount(text: string, lines: Line[]): { value: string; confidence: 
   return null;
 }
 
+/** Cents as the final element: "3.450,00" qualifies, "30.04.2027" does not. */
+const HAS_CENTS = /[.,]\d{2}\.?$/;
+
+/** dd.mm.yyyy and friends. */
+const DATE_TOKEN = /^\d{1,2}[.,]\d{1,2}[.,]\d{2,4}\.?$/;
+
 function parsesAsPositiveAmount(value: string): boolean {
   const normalized = normalizeAmount(value);
   return normalized !== null && Number(normalized) > 0;
@@ -211,7 +217,10 @@ function findAmount(lines: Line[]): { value: string; confidence: number } | null
   const numbers: string[] = [];
   for (const line of lines) {
     for (const token of line.raw.match(/\d[\d.,]*\d|\d/g) ?? []) {
-      if (/[.,]\d{2}\b/.test(token)) numbers.push(token);
+      // Cents must be the last thing in the token, and dates are excluded
+      // outright: they are the commonest false positive on any official
+      // document and they parse into enormous, plausible-looking amounts.
+      if (HAS_CENTS.test(token) && !DATE_TOKEN.test(token)) numbers.push(token);
     }
   }
   const parsed = numbers
