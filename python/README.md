@@ -90,11 +90,12 @@ wording and line wrapping, everything identifying is a placeholder.
 
 ## Relationship to the TypeScript library
 
-The port fixes three bugs that are still present in `src/core` and
-`src/extract`:
+Writing this port is what surfaced three defects in `src/core` and
+`src/extract`: `RO` sliced blindly, raw text sliced with folded offsets, and
+labels matched in dictionary order with no priority and no validity check.
 
-1. `parsePayload` slices the `RO` tag blindly, so `RO:9` yields model `"9"`.
-2. `normalize.ts` slices `raw` using offsets found in the *folded* string;
-   any line containing `ђ`, `љ`, `њ` or `џ` misplaces every later field.
-3. Labels are matched in dictionary order with no priority and no validity
-   check, so the first textual match wins even when it is unusable.
+All three are now fixed on both sides, and the suites mirror each other
+deliberately — `tests/fixtures/prekrsajni_poziv.txt` and
+`src/extract/__fixtures__/prekrsajni-poziv.txt` are the same document, so a
+change to one implementation that is not made to the other shows up as a
+failing test rather than as silent drift.
