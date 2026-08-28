@@ -116,6 +116,28 @@ function toLines(text: string): Line[] {
 }
 
 /**
+ * The text belonging to a label: everything up to the next label on the line.
+ *
+ * A prose document puts several labels on one line -- "u korist: X, u svrhu
+ * placanja: Y na racun broj Z" -- so taking the rest of the line swallows the
+ * next two fields into this one.
+ *
+ * `startFolded` is an index into the folded line and is translated before it
+ * touches the raw one.
+ */
+function valueAfter(line: Line, startFolded: number): string {
+  let cutFolded = line.folded.length;
+  for (const pattern of ALL_PATTERNS) {
+    const following = pattern.exec(line.folded.slice(startFolded));
+    if (following) cutFolded = Math.min(cutFolded, startFolded + following.index);
+  }
+
+  const rawStart = line.offsets[startFolded];
+  const rawEnd = line.offsets[cutFolded];
+  return line.raw.slice(rawStart, rawEnd).replace(/^[\s:.\-–]+/, '').replace(/[\s,;:]+$/, '').trim();
+}
+
+/**
  * Read the value belonging to a label.
  *
  * On a slip the value sits either to the right of the label or directly below
@@ -128,10 +150,7 @@ function valueForLabel(lines: Line[], patterns: readonly RegExp[]): string | nul
       const match = lines[i].folded.match(pattern);
       if (!match || match.index === undefined) continue;
 
-      // The match index is an offset into the *folded* line, so it has to be
-      // translated before it can slice the raw one.
-      const rawStart = lines[i].offsets[match.index + match[0].length];
-      const after = lines[i].raw.slice(rawStart).replace(/^[\s:.\-–]+/, '').trim();
+      const after = valueAfter(lines[i], match.index + match[0].length);
       if (after) return after;
 
       // Value wrapped to the next line; skip a line that is only another label.
