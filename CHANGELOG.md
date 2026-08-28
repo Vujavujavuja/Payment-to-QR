@@ -7,6 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+The three defects the Python port found are now fixed in the TypeScript too,
+so both implementations agree again ([#2]).
+
+- **Fold offsets on Cyrillic.** `valueForLabel` matched against the folded line
+  and sliced the raw one with the index it got back. Any line containing `ђ`,
+  `љ`, `њ` or `џ` returned every later field shifted, silently. Folding now
+  returns an offset map.
+- **Label priority.** `korisnik` means the payee on a bank slip and the driver
+  on a police summons, where it appears first — the extractor returned the car
+  as the recipient. Labels are ordered and the unambiguous one is tried first.
+- **A label match treated as a usable value.** Numeric fields carry an
+  exact-width predicate and the search continues when it fails, so
+  `marke X model Y` no longer yields a reference model of `00`.
+- **Values running past the next label.** Prose puts several labels on one
+  line; the recipient swallowed the purpose and the account with it.
+- **Dates read as amounts.** `30.04.2027` normalised to `30042027.00` and beat
+  every real figure on the page.
+- **`RO` sliced blindly.** `RO:9` yielded reference model `"9"`.
+
+### Added
+
+- First tests for `src/extract`, which had none. They needed vitest to resolve
+  the `@/` alias first — src/extract imports core through it, so the whole
+  directory was untestable, which is much of why it was untested.
+
+[#2]: https://github.com/Vujavujavuja/Payment-to-QR/issues/2
+
 ## [0.1.0] - 2026-08-24
 
 First tagged release. Two implementations of the NBS IPS QR specification, a

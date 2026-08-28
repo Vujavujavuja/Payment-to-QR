@@ -176,6 +176,21 @@ describe('parsePayload', () => {
     expect(parsePayload('https://example.com')).toBeNull();
   });
 
+  it('treats a too-short RO tag as absent rather than slicing it', () => {
+    // "RO:9" cannot hold a 2-digit model and a reference, and slicing it
+    // anyway yields a one-digit model the spec does not have.
+    const parsed = parsePayload('K:PR|V:01|C:1|R:265000123456789098|N:T|I:RSD10,00|SF:189|RO:9');
+    expect(parsed).not.toBeNull();
+    expect(parsed!.referenceModel).toBeUndefined();
+    expect(parsed!.referenceNumber).toBeUndefined();
+  });
+
+  it('still parses the shortest RO that can hold both parts', () => {
+    const parsed = parsePayload('K:PR|V:01|C:1|R:265000123456789098|N:T|I:RSD10,00|SF:189|RO:001');
+    expect(parsed!.referenceModel).toBe('00');
+    expect(parsed!.referenceNumber).toBe('1');
+  });
+
   it('ignores tags it does not know', () => {
     const parsed = parsePayload('K:PR|V:01|C:1|R:265000123456789098|N:Test|I:RSD10,00|SF:189|XX:future');
     expect(parsed?.recipientName).toBe('Test');

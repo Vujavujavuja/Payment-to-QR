@@ -26,10 +26,13 @@ export function parsePayload(payload: string): IpsPayment | null {
 
   const get = (tag: IpsTag) => tags.get(tag) ?? '';
 
-  // RO packs the 2-digit model and the reference into one value.
+  // RO packs the 2-digit model and the reference into one value. A value
+  // shorter than three characters cannot hold both, so it is treated as absent
+  // rather than sliced into a model with no reference behind it.
   const rawReference = get('RO');
-  const referenceModel = rawReference ? rawReference.slice(0, 2) : undefined;
-  const referenceNumber = rawReference ? rawReference.slice(2) : undefined;
+  const hasReference = rawReference.length >= 3;
+  const referenceModel = hasReference ? rawReference.slice(0, 2) : undefined;
+  const referenceNumber = hasReference ? rawReference.slice(2) : undefined;
 
   return {
     recipientAccount: get('R'),
