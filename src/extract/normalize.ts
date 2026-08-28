@@ -143,19 +143,31 @@ function valueAfter(line: Line, startFolded: number): string {
  * On a slip the value sits either to the right of the label or directly below
  * it, depending on the layout, so both are tried. Anything left of the label on
  * the same line is discarded — that is the label's own column header.
+ *
+ * `accept` lets a caller reject a value that is present but unusable and keep
+ * looking. Without it the first textual match wins even when it holds nothing
+ * the caller can use, and the search stops somewhere useless.
  */
-function valueForLabel(lines: Line[], patterns: readonly RegExp[]): string | null {
+function valueForLabel(
+  lines: Line[],
+  patterns: readonly RegExp[],
+  accept?: (value: string) => boolean,
+): string | null {
   for (const pattern of patterns) {
     for (let i = 0; i < lines.length; i++) {
       const match = lines[i].folded.match(pattern);
       if (!match || match.index === undefined) continue;
 
       const after = valueAfter(lines[i], match.index + match[0].length);
-      if (after) return after;
+      if (after && (!accept || accept(after))) return after;
 
       // Value wrapped to the next line; skip a line that is only another label.
-      const next = lines[i + 1];
-      if (next && !ALL_PATTERNS.some((p) => p.test(next.folded))) return next.raw;
+      if (!after) {
+        const next = lines[i + 1];
+        if (next && !ALL_PATTERNS.some((p) => p.test(next.folded))) {
+          if (!accept || accept(next.raw)) return next.raw;
+        }
+      }
     }
   }
   return null;
