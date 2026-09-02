@@ -1,7 +1,7 @@
 <h1 align="center">Payment to QR</h1>
 
 <p align="center">
-  <strong>NBS IPS QR Code generator from image, AI Compatible</strong>
+  <strong>AI-compatible NBS IPS QR code generator — photograph a Serbian payment slip, get a code you can pay from any banking app.</strong>
   <br>
   <sub>Generator IPS QR koda &middot; uplatnica u QR kod &middot; besplatno i otvorenog koda</sub>
 </p>
