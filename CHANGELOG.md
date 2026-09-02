@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **The core library is now a real package.** `src/core` moves to
+  `packages/ips-qr`, an npm workspace package with an exports map, ESM build
+  and type declarations ([#7]). The README described it as reusable while it
+  sat inside a private application behind a tsconfig path alias, so reuse
+  meant copying files.
+
+  The app consumes it by package name like anyone else would, so the reusable
+  path is exercised on every build rather than only claimed. The main entry is
+  dependency-free and QR rendering is a separate entry point behind an
+  optional `qrcode` peer.
+
+  Not published to npm — that decision is still open. `npm run verify:package`
+  packs the tarball, installs it into a temp directory and imports it, which
+  is the only check that can catch a broken exports map or ESM Node refuses to
+  load.
+
+[#7]: https://github.com/Vujavujavuja/Payment-to-QR/issues/7
+
 ### Fixed
 
 The three defects the Python port found are now fixed in the TypeScript too,

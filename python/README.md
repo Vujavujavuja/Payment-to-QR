@@ -1,6 +1,6 @@
 # ips-qr (Python)
 
-A Python port of the TypeScript `src/core` library, plus a text/PDF extractor
+A Python port of the TypeScript `packages/ips-qr` library, plus a text/PDF extractor
 and a CLI. Same IPS QR spec, same validation rules, same refusal to render a
 code for a payment that does not validate.
 
@@ -90,7 +90,7 @@ wording and line wrapping, everything identifying is a placeholder.
 
 ## Relationship to the TypeScript library
 
-Writing this port is what surfaced three defects in `src/core` and
+Writing this port is what surfaced three defects in the TypeScript core and
 `src/extract`: `RO` sliced blindly, raw text sliced with folded offsets, and
 labels matched in dictionary order with no priority and no validity check.
 
