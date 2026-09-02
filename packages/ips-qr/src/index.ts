@@ -9,15 +9,15 @@
  * a third-party package, and importing this barrel should not drag `qrcode`
  * in with it — import from `./qr` when you actually want to draw one.
  */
-export * from './types';
-export * from './constants';
-export * from './format';
-export * from './validate';
-export * from './encode';
-export * from './parse';
+export * from './types.js';
+export * from './constants.js';
+export * from './format.js';
+export * from './validate.js';
+export * from './encode.js';
+export * from './parse.js';
 
-import { DEFAULT_PAYMENT_CODE } from './constants';
-import type { IpsPayment } from './types';
+import { DEFAULT_PAYMENT_CODE } from './constants.js';
+import type { IpsPayment } from './types.js';
 
 /** A blank payment, for seeding an empty form. */
 export function emptyPayment(): IpsPayment {

@@ -1,8 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { COMMON_PAYMENT_CODES, IPS_FIELD_LIMITS } from '@/core/constants';
-import type { IpsPayment, ValidationIssue } from '@/core/types';
+import { COMMON_PAYMENT_CODES, IPS_FIELD_LIMITS } from 'ips-qr';
+import type { IpsPayment, ValidationIssue } from 'ips-qr';
 import type { FieldConfidence } from '@/extract/types';
 
 /** Below this, the extractor was guessing and the field is flagged for review. */

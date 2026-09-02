@@ -1,0 +1,40 @@
+{
+  "name": "ips-qr",
+  "version": "0.1.0",
+  "description": "NBS IPS QR payload encoding, validation and parsing for Serbian instant payments.",
+  "keywords": ["ips-qr", "nbs", "serbia", "qr-code", "payments", "uplatnica", "iso-7064"],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Vujavujavuja/Payment-to-QR.git",
+    "directory": "packages/ips-qr"
+  },
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./qr": {
+      "types": "./dist/qr.d.ts",
+      "default": "./dist/qr.js"
+    }
+  },
+  "files": ["dist", "README.md"],
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "peerDependencies": {
+    "qrcode": "^1.5.4"
+  },
+  "peerDependenciesMeta": {
+    "qrcode": {
+      "optional": true
+    }
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

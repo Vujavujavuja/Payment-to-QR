@@ -1,4 +1,4 @@
-import type { IpsPayment } from '@/core/types';
+import type { IpsPayment } from 'ips-qr';
 
 /** Fields an extractor can populate. Mirrors IpsPayment minus derived values. */
 export type ExtractableField = keyof IpsPayment;

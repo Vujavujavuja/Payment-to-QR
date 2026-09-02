@@ -1,4 +1,4 @@
-import type { IpsTag } from './types';
+import type { IpsTag } from './types.js';
 
 /** Fixed header values required by the specification. */
 export const IPS_IDENTIFICATION_CODE = 'PR';

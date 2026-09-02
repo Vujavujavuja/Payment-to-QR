@@ -1,6 +1,6 @@
-import { IPS_FIELD_LIMITS } from './constants';
-import { digitsOnly, formatAmountForPayload, normalizeAccount, normalizeAmount } from './format';
-import type { IpsPayment, ValidationIssue, ValidationResult } from './types';
+import { IPS_FIELD_LIMITS } from './constants.js';
+import { digitsOnly, formatAmountForPayload, normalizeAccount, normalizeAmount } from './format.js';
+import type { IpsPayment, ValidationIssue, ValidationResult } from './types.js';
 
 /**
  * ISO 7064 MOD 97-10, the same scheme IBAN uses.

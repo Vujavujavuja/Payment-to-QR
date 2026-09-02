@@ -2,23 +2,25 @@
   "name": "payment-to-qr",
   "version": "0.1.0",
   "private": true,
-  "description": "Open source NBS IPS QR code generator — snap a photo of a payment slip and get a scannable IPS QR code.",
+  "description": "Open source NBS IPS QR code generator \u2014 snap a photo of a payment slip and get a scannable IPS QR code.",
   "license": "MIT",
   "repository": {
     "type": "git",
     "url": "https://github.com/Vujavujavuja/Payment-to-QR.git"
   },
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "npm run build --workspace ips-qr && next dev",
+    "build": "npm run build --workspace ips-qr && next build",
+    "build:lib": "npm run build --workspace ips-qr",
     "start": "next start",
     "lint": "eslint",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "npm run build --workspace ips-qr && tsc --noEmit",
     "test": "vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.122.0",
+    "ips-qr": "*",
     "next": "^16.3.3",
     "qrcode": "^1.5.4",
     "react": "^19.1.0",
@@ -37,5 +39,8 @@
   },
   "engines": {
     "node": ">=20"
-  }
+  },
+  "workspaces": [
+    "packages/*"
+  ]
 }

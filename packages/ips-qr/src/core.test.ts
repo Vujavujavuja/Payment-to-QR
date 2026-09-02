@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { encodePayment } from './encode';
-import { formatAccount, formatAmountForPayload, normalizeAccount, normalizeAmount } from './format';
-import { parsePayload } from './parse';
-import type { IpsPayment } from './types';
-import { computeAccountControlDigits, isValidAccountChecksum, isValidModel97Reference, validatePayment } from './validate';
+import { encodePayment } from './encode.js';
+import { formatAccount, formatAmountForPayload, normalizeAccount, normalizeAmount } from './format.js';
+import { parsePayload } from './parse.js';
+import type { IpsPayment } from './types.js';
+import { computeAccountControlDigits, isValidAccountChecksum, isValidModel97Reference, validatePayment } from './validate.js';
 
 /** Checksum-valid account: bank 265, account 1234567890, control 98. */
 const VALID_ACCOUNT = '265000123456789098';

@@ -1,6 +1,6 @@
-import { IPS_IDENTIFICATION_CODE, IPS_TAG_SEPARATOR } from './constants';
-import { normalizeAmount } from './format';
-import type { IpsPayment, IpsTag } from './types';
+import { IPS_IDENTIFICATION_CODE, IPS_TAG_SEPARATOR } from './constants.js';
+import { normalizeAmount } from './format.js';
+import type { IpsPayment, IpsTag } from './types.js';
 
 /**
  * Decode an IPS QR payload back into a payment.
