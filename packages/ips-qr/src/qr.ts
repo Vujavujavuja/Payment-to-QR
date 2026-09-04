@@ -1,6 +1,6 @@
 import QRCode from 'qrcode';
-import { encodePayment } from './encode';
-import type { IpsPayment } from './types';
+import { encodePayment } from './encode.js';
+import type { IpsPayment } from './types.js';
 
 export interface QrOptions {
   /** Pixel width of the rendered PNG. */

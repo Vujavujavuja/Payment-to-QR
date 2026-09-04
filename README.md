@@ -112,7 +112,7 @@ The same specification, twice, with test suites that mirror each other.
 
 | | TypeScript | Python |
 | --- | --- | --- |
-| Library | `src/core` | `python/ips_qr` |
+| Library | `packages/ips-qr` | `python/ips_qr` |
 | Extraction | `src/extract` | `python/ips_qr/extract` |
 | Interface | Web app (Next.js) | `ips-qr` CLI |
 | Input | Camera, file, paste | Text, PDF, stdin |
@@ -124,8 +124,12 @@ tracked, not accidental.
 
 ### TypeScript
 
+```bash
+npm install ips-qr        # no dependencies; add qrcode only to render
+```
+
 ```ts
-import { encodePayment, validatePayment } from '@/core';
+import { encodePayment, validatePayment } from 'ips-qr';
 
 const payment = {
   recipientAccount: '265-1234567890-98', // padded and checksummed for you
@@ -137,6 +141,12 @@ const payment = {
 const { valid } = validatePayment(payment);
 if (valid) console.log(encodePayment(payment).payload);
 ```
+
+The library lives in [`packages/ips-qr`](packages/ips-qr) and is consumed by
+this app the same way anyone else would consume it — by package name, through
+its exports map — so the reusable path is the one that is exercised on every
+build. It is not on npm yet; [`packages/ips-qr/README.md`](packages/ips-qr/README.md)
+says how to use it meanwhile.
 
 ### Python
 
@@ -211,15 +221,20 @@ Each of these is a real bug that this code has had, or deliberately avoids.
 ## Project layout
 
 ```
+packages/
+  ips-qr/        The library: types, validation, encode, parse, QR rendering
 src/
-  core/          IPS spec: types, validation, encode, parse, QR rendering
   extract/       Provider interface, Tesseract and Claude implementations
   app/           Next.js App Router pages and the /api/extract route
   components/    Dropzone, form, QR preview
+  lib/           App-only helpers: site metadata, rate limiting
 python/
   ips_qr/        The port: core, extraction, PDF backend, CLI
   tests/         71 tests, including a render-and-decode round trip
 ```
+
+An npm workspace: `packages/ips-qr` is publishable and dependency-free, the
+app around it stays private.
 
 ## Questions
 

@@ -5,9 +5,8 @@ import { Faq } from '@/components/Faq';
 import { ImageDropzone } from '@/components/ImageDropzone';
 import { PaymentForm } from '@/components/PaymentForm';
 import { QrPreview } from '@/components/QrPreview';
-import { emptyPayment } from '@/core';
-import type { IpsPayment } from '@/core/types';
-import { validatePayment } from '@/core/validate';
+import { emptyPayment, validatePayment } from 'ips-qr';
+import type { IpsPayment } from 'ips-qr';
 import type { ExtractionResult, FieldConfidence } from '@/extract/types';
 
 type ProviderId = 'tesseract' | 'claude';

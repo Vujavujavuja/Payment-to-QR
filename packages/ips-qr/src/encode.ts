@@ -6,9 +6,9 @@ import {
   IPS_TAG_ORDER,
   IPS_TAG_SEPARATOR,
   IPS_VERSION,
-} from './constants';
-import { digitsOnly, formatAmountForPayload, normalizeAccount, sanitizeText } from './format';
-import type { IpsPayment, IpsTag } from './types';
+} from './constants.js';
+import { digitsOnly, formatAmountForPayload, normalizeAccount, sanitizeText } from './format.js';
+import type { IpsPayment, IpsTag } from './types.js';
 
 export interface EncodeResult {
   payload: string;

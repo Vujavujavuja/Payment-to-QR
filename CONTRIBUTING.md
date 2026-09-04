@@ -46,7 +46,7 @@ the port fixed and the TypeScript still has. Each is self-contained.
 
 The repository holds two implementations of the same spec.
 
-### TypeScript (the web app and `src/core`)
+### TypeScript (the web app and `packages/ips-qr`)
 
 ```bash
 npm install
@@ -54,11 +54,17 @@ npm run dev          # http://localhost:3000
 ```
 
 ```bash
-npm run lint         # eslint
-npm run typecheck    # tsc --noEmit
-npm test             # vitest
-npm run build        # catches App Router / boundary errors the above miss
+npm run lint            # eslint
+npm run typecheck       # tsc --noEmit
+npm test                # vitest, app and library together
+npm run build           # catches App Router / boundary errors the above miss
+npm run verify:package  # packs the library and imports it from a temp dir
 ```
+
+The repository is an npm workspace. `packages/ips-qr` is the publishable
+library and carries no dependencies; the app around it is private. The app
+imports it by package name, so the path a stranger would use is the one that
+gets exercised on every build.
 
 No configuration and no API key. OCR runs in the browser.
 
@@ -81,8 +87,8 @@ test is skipped, because a silently skipped test is how a whole code path rots.
 
 ## The two implementations
 
-`src/core` and `python/ips_qr` implement the same specification and their test
-suites deliberately mirror each other. A behavioural change to one should
+`packages/ips-qr` and `python/ips_qr` implement the same specification and
+their test suites deliberately mirror each other. A behavioural change to one should
 change the other, or the divergence should be explained in the commit message.
 
 They are not required to stay identical — the Python port intentionally fixes

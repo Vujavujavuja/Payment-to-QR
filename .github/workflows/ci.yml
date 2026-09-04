@@ -26,6 +26,10 @@ jobs:
       # rather than quietly resolving different versions than a contributor ran.
       - run: npm ci
 
+      # The app imports the library by package name and resolves it to dist,
+      # so nothing downstream compiles until this has run.
+      - run: npm run build:lib
+
       - run: npm run lint
 
       - run: npm run typecheck
@@ -35,6 +39,11 @@ jobs:
       # Catches App Router and server/client boundary errors that neither tsc
       # nor the unit tests see.
       - run: npm run build
+
+      # Packs the library and imports it from a temp directory. The suites
+      # above all run through a bundler and would not notice a broken exports
+      # map, a files list missing dist, or ESM Node cannot load.
+      - run: npm run verify:package
 
   python:
     name: Python ${{ matrix.python-version }}

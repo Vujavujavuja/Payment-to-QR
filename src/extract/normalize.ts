@@ -1,6 +1,11 @@
-import { IPS_FIELD_LIMITS } from '@/core/constants';
-import { digitsOnly, normalizeAccount, normalizeAmount, sanitizeText } from '@/core/format';
-import { isValidAccountChecksum } from '@/core/validate';
+import {
+  IPS_FIELD_LIMITS,
+  digitsOnly,
+  isValidAccountChecksum,
+  normalizeAccount,
+  normalizeAmount,
+  sanitizeText,
+} from 'ips-qr';
 import type { ExtractionResult, FieldConfidence } from './types';
 
 /**

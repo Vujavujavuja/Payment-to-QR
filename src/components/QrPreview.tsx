@@ -1,9 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { encodePayment } from '@/core/encode';
-import { renderPayloadToDataUrl, renderPayloadToSvg } from '@/core/qr';
-import type { IpsPayment } from '@/core/types';
+import { encodePayment } from 'ips-qr';
+import { renderPayloadToDataUrl, renderPayloadToSvg } from 'ips-qr/qr';
+import type { IpsPayment } from 'ips-qr';
 
 interface Props {
   payment: IpsPayment;
