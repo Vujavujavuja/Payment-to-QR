@@ -6,7 +6,7 @@ machine. Needs the ``mcp`` extra; importing :mod:`ips_qr` itself never does.
 """
 
 # Importing these modules is what registers them on the app.
-from . import extraction, rendering, resources, tools  # noqa: F401
+from . import extraction, prompts, rendering, resources, tools  # noqa: F401
 from .app import app
 
 
