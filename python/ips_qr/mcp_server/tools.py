@@ -7,10 +7,11 @@ tested against the TypeScript implementation; nothing here re-implements it.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated, Any
 
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
+from pydantic import Field
 
 from ..constants import COMMON_PAYMENT_CODES
 from ..encode import encode_payment as encode
@@ -164,7 +165,12 @@ def encode_payment(
 
 
 @app.tool(title="Read an IPS payload back into fields", annotations=READ_ONLY)
-def parse_payload(payload: str) -> dict[str, Any]:
+def parse_payload(
+    payload: Annotated[
+        str,
+        Field(description="The text an IPS QR code contains, starting 'K:PR|V:01|...'."),
+    ],
+) -> dict[str, Any]:
     """Decode an IPS payload string (the text inside an IPS QR code) into its fields.
 
     Use it to inspect or edit a code someone else produced. The decoded payment
