@@ -276,3 +276,21 @@ class TestParsePayload:
         )
         assert result["recognised"] is True
         assert result["validation"]["valid"] is False
+
+
+class TestListPaymentCodes:
+    def test_lists_three_digit_codes_with_meanings(self):
+        codes = call("list_payment_codes")["codes"]
+        assert codes
+        assert all(len(c["code"]) == 3 and c["code"].isdigit() for c in codes)
+        assert all(c["meaning"] for c in codes)
+
+    def test_includes_the_codes_people_actually_use(self):
+        listed = {c["code"] for c in call("list_payment_codes")["codes"]}
+        assert {"189", "221", "253"} <= listed
+
+    def test_says_the_list_is_not_a_default(self):
+        assert "not a default" in call("list_payment_codes")["note"]
+
+    def test_takes_no_arguments(self):
+        assert tool_named("list_payment_codes").input_schema.get("required", []) == []
