@@ -124,6 +124,8 @@ class TestOptionalDependency:
         assert done.stdout.strip() == "ok", done.stderr
 
 
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
 #: The redacted traffic-fine summons the extractor suites share.
 SUMMONS = (Path(__file__).parent / "fixtures" / "prekrsajni_poziv.txt").read_text(encoding="utf-8")
 
@@ -638,3 +640,38 @@ class TestOverStdio:
             return client.instructions
 
         assert self.run(read, "-m", "ips_qr.mcp_server") == INSTRUCTIONS
+
+
+class TestClaudeCodeConfig:
+    """.mcp.json is read by Claude Code, not by anything in this repository.
+
+    Nothing would fail if it drifted from the package it launches, so these
+    tie the two together. They check the file's shape rather than running it:
+    the launch itself needs uv, and the stdio tests above already cover the
+    process it starts.
+    """
+
+    def config(self):
+        return json.loads((REPO_ROOT / ".mcp.json").read_text())["mcpServers"]["payment-to-qr"]
+
+    def pyproject(self):
+        # Read as text: tomllib only exists from Python 3.11, and the package
+        # supports 3.10.
+        return (REPO_ROOT / "python" / "pyproject.toml").read_text()
+
+    def test_launches_the_console_script_the_package_declares(self):
+        script = self.config()["args"][-1]
+        assert f'{script} = "ips_qr.mcp_server:main"' in self.pyproject()
+
+    def test_installs_the_extra_that_carries_the_server(self):
+        assert "\nmcp = [" in self.pyproject()
+        assert "./python[mcp]" in self.config()["args"]
+
+    def test_does_not_sync_or_lock_the_project(self):
+        # Without --no-project, uv would strip the dev tools out of
+        # python/.venv and leave a uv.lock behind.
+        assert "--no-project" in self.config()["args"]
+
+    def test_is_named_after_the_server_it_starts(self):
+        servers = json.loads((REPO_ROOT / ".mcp.json").read_text())["mcpServers"]
+        assert list(servers) == [app.name]
