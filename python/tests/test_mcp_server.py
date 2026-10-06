@@ -5,6 +5,7 @@ protocol-level tests go through a real client connected in-process, which
 checks the part direct calls cannot: what a client is actually told.
 """
 
+import base64
 import json
 import shutil
 import subprocess
@@ -15,6 +16,8 @@ import anyio
 import pytest
 
 pytest.importorskip("mcp", reason="needs the 'mcp' extra")
+cv2 = pytest.importorskip("cv2", reason="decoding needs opencv-python-headless")
+numpy = pytest.importorskip("numpy")
 
 from mcp import Client
 from pdf_builder import minimal_pdf
@@ -62,6 +65,24 @@ def call_expecting_error(name, **arguments):
     result = connect(invoke)
     assert result.is_error, "expected the tool to refuse"
     return result.content[0].text
+
+
+def call_raw(name, **arguments):
+    """Call a tool and return the whole result, for tools that return an image."""
+
+    async def invoke(client):
+        return await client.call_tool(name, arguments)
+
+    result = connect(invoke)
+    assert not result.is_error, result.content
+    return result
+
+
+def decode_qr(png: bytes) -> str:
+    """Read a QR code with OpenCV, which shares no code with the encoder."""
+    image = cv2.imdecode(numpy.frombuffer(png, numpy.uint8), cv2.IMREAD_COLOR)
+    decoded, _points, _straight = cv2.QRCodeDetector().detectAndDecode(image)
+    return decoded
 
 
 def tool_named(name):
@@ -376,3 +397,38 @@ class TestExtractFromPdf:
     def test_says_when_the_file_does_not_exist(self, tmp_path):
         message = call_expecting_error("extract_payment_from_pdf", path=str(tmp_path / "no.pdf"))
         assert "No such file" in message
+
+
+class TestGenerateQr:
+    def test_returns_a_summary_and_a_png(self):
+        result = call_raw("generate_qr", **VALID)
+        kinds = [block.type for block in result.content]
+        assert kinds == ["text", "image"]
+        assert result.content[1].mime_type == "image/png"
+
+    def test_the_image_scans_back_to_the_payload_it_reports(self):
+        result = call_raw("generate_qr", **VALID)
+        summary = json.loads(result.content[0].text)
+        png = base64.b64decode(result.content[1].data)
+        assert decode_qr(png) == summary["payload"]
+
+    def test_cyrillic_survives_into_the_image(self):
+        result = call_raw(
+            "generate_qr",
+            recipient_account="840-743324843-18",
+            recipient_name="БУЏЕТ РЕПУБЛИКЕ СРБИЈЕ",
+            amount="5000",
+            payment_code="253",
+        )
+        png = base64.b64decode(result.content[1].data)
+        assert "БУЏЕТ РЕПУБЛИКЕ СРБИЈЕ" in decode_qr(png)
+
+    def test_reminds_the_user_to_check_in_their_banking_app(self):
+        summary = json.loads(call_raw("generate_qr", **VALID).content[0].text)
+        assert "banking" in summary["reminder"]
+
+    def test_refuses_to_draw_an_invalid_payment(self):
+        message = call_expecting_error(
+            "generate_qr", **{**VALID, "recipient_account": "265-1234567890-97"}
+        )
+        assert "Refusing" in message

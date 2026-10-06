@@ -57,3 +57,4 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 # importorskip has to run before the module import it guards.
 "tests/test_qr_roundtrip.py" = ["E402"]
+"tests/test_mcp_server.py" = ["E402"]
