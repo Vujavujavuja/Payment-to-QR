@@ -7,4 +7,15 @@ machine. Needs the ``mcp`` extra; importing :mod:`ips_qr` itself never does.
 
 from .app import app
 
-__all__ = ["app"]
+
+def main() -> None:
+    """Serve over stdio until the client disconnects.
+
+    stdio is the only transport offered on purpose. The tools read local files
+    and write local files, which is appropriate for a process the user started
+    on their own machine and not for something listening on a port.
+    """
+    app.run("stdio")
+
+
+__all__ = ["app", "main"]

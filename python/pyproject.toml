@@ -28,6 +28,7 @@ dev = [
 
 [project.scripts]
 ips-qr = "ips_qr.cli:main"
+ips-qr-mcp = "ips_qr.mcp_server:main"
 
 [tool.setuptools.packages.find]
 include = ["ips_qr*"]
