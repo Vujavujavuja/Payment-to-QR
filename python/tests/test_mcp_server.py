@@ -551,3 +551,42 @@ class TestPayDocumentPrompt:
         }
         assert all(name in text for name in mentioned)
         assert mentioned <= connect(names)
+
+
+class TestToolInventory:
+    def tools(self):
+        async def listing(client):
+            return (await client.list_tools()).tools
+
+        return connect(listing)
+
+    def test_exposes_exactly_these_tools(self):
+        # Deliberately exhaustive. Adding or renaming a tool changes what a
+        # user has granted permission for, so it should be a visible decision.
+        assert sorted(t.name for t in self.tools()) == [
+            "encode_payment",
+            "extract_payment_from_pdf",
+            "extract_payment_from_text_content",
+            "generate_qr",
+            "list_payment_codes",
+            "normalize_account_number",
+            "parse_payload",
+            "save_qr",
+            "validate_payment",
+        ]
+
+    def test_every_tool_has_a_title_and_a_description(self):
+        for tool in self.tools():
+            assert tool.title, tool.name
+            assert tool.description and len(tool.description) > 40, tool.name
+
+    def test_no_tool_claims_to_reach_the_network(self):
+        # Everything runs on this machine. open_world_hint is how a tool
+        # declares otherwise, and none should.
+        for tool in self.tools():
+            assert tool.annotations.open_world_hint is False, tool.name
+
+    def test_every_argument_is_described(self):
+        for tool in self.tools():
+            for name, schema in tool.input_schema.get("properties", {}).items():
+                assert schema.get("description"), f"{tool.name}.{name}"
