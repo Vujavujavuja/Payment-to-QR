@@ -22,7 +22,7 @@ numpy = pytest.importorskip("numpy")
 from mcp import Client
 from pdf_builder import minimal_pdf
 
-from ips_qr import validate_payment
+from ips_qr import IPS_FIELD_LIMITS, validate_payment
 from ips_qr.mcp_server import app
 from ips_qr.mcp_server.app import INSTRUCTIONS
 from ips_qr.mcp_server.payments import (
@@ -482,3 +482,28 @@ class TestSaveQr:
 
         writers = [t.name for t in connect(listing) if not t.annotations.read_only_hint]
         assert writers == ["save_qr"]
+
+
+class TestFormatResource:
+    def read(self):
+        async def fetch(client):
+            listed = (await client.list_resources()).resources
+            body = await client.read_resource("ips-qr://format")
+            return listed, body.contents[0]
+
+        return connect(fetch)
+
+    def test_is_listed_as_markdown(self):
+        listed, _content = self.read()
+        assert [str(r.uri) for r in listed] == ["ips-qr://format"]
+        assert listed[0].mime_type == "text/markdown"
+
+    def test_documents_every_tag_in_spec_order(self):
+        _listed, content = self.read()
+        positions = [content.text.index(f"| `{tag}` |") for tag in ("K", "R", "I", "SF", "RO")]
+        assert positions == sorted(positions)
+
+    def test_quotes_the_limits_the_validator_actually_applies(self):
+        _listed, content = self.read()
+        assert f"| Recipient name | yes | {IPS_FIELD_LIMITS['recipient_name']} |" in content.text
+        assert f"| Purpose of payment | no | {IPS_FIELD_LIMITS['purpose']} |" in content.text
