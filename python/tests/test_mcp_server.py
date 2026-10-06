@@ -5,6 +5,7 @@ protocol-level tests go through a real client connected in-process, which
 checks the part direct calls cannot: what a client is actually told.
 """
 
+import json
 import subprocess
 import sys
 
@@ -34,6 +35,26 @@ def connect(fn):
             return await fn(client)
 
     return anyio.run(runner)
+
+
+def call(name, **arguments):
+    """Call a tool through the protocol and return its decoded JSON result."""
+
+    async def invoke(client):
+        return await client.call_tool(name, arguments)
+
+    result = connect(invoke)
+    assert not result.is_error, result.content
+    if result.structured_content is not None:
+        return result.structured_content
+    return json.loads(result.content[0].text)
+
+
+def tool_named(name):
+    async def listing(client):
+        return (await client.list_tools()).tools
+
+    return next(tool for tool in connect(listing) if tool.name == name)
 
 
 class TestServerIdentity:
@@ -105,3 +126,26 @@ class TestPaymentHelpers:
 
     def test_account_display_returns_garbage_unchanged(self):
         assert account_display("not an account") == "not an account"
+
+
+class TestNormalizeAccountNumber:
+    def test_pads_and_verifies_a_printed_account(self):
+        result = call("normalize_account_number", account=VALID_ACCOUNT)
+        assert result["normalized"] == "265000123456789098"
+        assert result["display"] == "265-0001234567890-98"
+        assert result["checksum_valid"] is True
+
+    def test_flags_a_misread_digit(self):
+        result = call("normalize_account_number", account="265-1234567890-97")
+        assert result["recognised"] is True
+        assert result["checksum_valid"] is False
+        assert "misread" in result["message"]
+
+    def test_says_when_the_input_is_not_an_account_at_all(self):
+        result = call("normalize_account_number", account="12345")
+        assert result["recognised"] is False
+        assert "normalized" not in result
+
+    def test_is_advertised_as_read_only(self):
+        annotations = tool_named("normalize_account_number").annotations
+        assert annotations.read_only_hint is True
