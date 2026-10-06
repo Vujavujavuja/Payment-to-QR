@@ -702,3 +702,47 @@ class TestClaudeCodeConfig:
     def test_is_named_after_the_server_it_starts(self):
         servers = json.loads((REPO_ROOT / ".mcp.json").read_text())["mcpServers"]
         assert list(servers) == [app.name]
+
+
+class TestExtractionLimits:
+    def test_refuses_text_beyond_the_limit(self, monkeypatch):
+        from ips_qr.mcp_server import extraction
+
+        monkeypatch.setattr(extraction, "MAX_TEXT_CHARS", 50)
+        message = call_expecting_error("extract_payment_from_text_content", text="x" * 51)
+        assert "limit is 50" in message
+
+    def test_accepts_text_exactly_at_the_limit(self, monkeypatch):
+        from ips_qr.mcp_server import extraction
+
+        monkeypatch.setattr(extraction, "MAX_TEXT_CHARS", 50)
+        assert "fields" in call("extract_payment_from_text_content", text="x" * 50)
+
+    def test_refuses_an_oversized_pdf_before_parsing_it(self, tmp_path, monkeypatch):
+        from ips_qr.mcp_server import extraction
+
+        def must_not_run(_path):
+            raise AssertionError("the PDF was parsed despite being over the limit")
+
+        monkeypatch.setattr(extraction, "MAX_PDF_BYTES", 10)
+        monkeypatch.setattr(extraction, "pdf_to_text", must_not_run)
+        pdf = tmp_path / "big.pdf"
+        pdf.write_bytes(minimal_pdf(PDF_LINES))
+        message = call_expecting_error("extract_payment_from_pdf", path=str(pdf))
+        assert "limit is" in message
+
+    def test_refuses_a_small_pdf_that_expands_into_too_much_text(self, tmp_path, monkeypatch):
+        from ips_qr.mcp_server import extraction
+
+        monkeypatch.setattr(extraction, "MAX_TEXT_CHARS", 20)
+        monkeypatch.setattr(extraction, "pdf_to_text", lambda _path: "y" * 21)
+        pdf = tmp_path / "dense.pdf"
+        pdf.write_bytes(b"%PDF-1.4")
+        message = call_expecting_error("extract_payment_from_pdf", path=str(pdf))
+        assert "limit is 20" in message
+
+    def test_the_real_limits_are_generous_for_a_payment_document(self):
+        from ips_qr.mcp_server import extraction
+
+        assert len(SUMMONS) * 20 < extraction.MAX_TEXT_CHARS
+        assert extraction.MAX_PDF_BYTES >= 10 * 1024 * 1024
