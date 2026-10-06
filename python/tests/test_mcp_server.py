@@ -19,7 +19,7 @@ pytest.importorskip("mcp", reason="needs the 'mcp' extra")
 cv2 = pytest.importorskip("cv2", reason="decoding needs opencv-python-headless")
 numpy = pytest.importorskip("numpy")
 
-from mcp import Client
+from mcp import Client, StdioServerParameters
 from pdf_builder import minimal_pdf
 
 from ips_qr import IPS_FIELD_LIMITS, validate_payment
@@ -590,3 +590,51 @@ class TestToolInventory:
         for tool in self.tools():
             for name, schema in tool.input_schema.get("properties", {}).items():
                 assert schema.get("description"), f"{tool.name}.{name}"
+
+
+class TestOverStdio:
+    """The server as Claude Code runs it: a child process, spoken to over pipes.
+
+    Everything above connects in-process. That proves the tools; it does not
+    prove the entry point starts, or that nothing writes to stdout and corrupts
+    the protocol stream, which is the classic way a stdio server breaks.
+    """
+
+    def run(self, fn, *args):
+        params = StdioServerParameters(command=sys.executable, args=list(args))
+
+        async def runner():
+            async with Client(params) as client:
+                return await fn(client)
+
+        return anyio.run(runner)
+
+    def test_the_module_entry_point_serves_tools(self):
+        async def names(client):
+            return sorted(t.name for t in (await client.list_tools()).tools)
+
+        assert "generate_qr" in self.run(names, "-m", "ips_qr.mcp_server")
+
+    def test_a_full_flow_works_across_the_process_boundary(self):
+        async def flow(client):
+            extracted = await client.call_tool(
+                "extract_payment_from_text_content", {"text": SUMMONS}
+            )
+            fields = (extracted.structured_content or json.loads(extracted.content[0].text))[
+                "fields"
+            ]
+            # What the user would supply: the code, and the reduced amount.
+            fields.update(payment_code="253", amount="5000")
+            return await client.call_tool("generate_qr", fields)
+
+        result = self.run(flow, "-m", "ips_qr.mcp_server")
+        assert not result.is_error, result.content
+        summary = json.loads(result.content[0].text)
+        assert decode_qr(base64.b64decode(result.content[1].data)) == summary["payload"]
+        assert "I:RSD5000,00" in summary["payload"]
+
+    def test_instructions_arrive_over_stdio_too(self):
+        async def read(client):
+            return client.instructions
+
+        assert self.run(read, "-m", "ips_qr.mcp_server") == INSTRUCTIONS
