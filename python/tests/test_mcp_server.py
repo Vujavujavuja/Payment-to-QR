@@ -50,6 +50,17 @@ def call(name, **arguments):
     return json.loads(result.content[0].text)
 
 
+def call_expecting_error(name, **arguments):
+    """Call a tool that should refuse, and return the refusal text."""
+
+    async def invoke(client):
+        return await client.call_tool(name, arguments)
+
+    result = connect(invoke)
+    assert result.is_error, "expected the tool to refuse"
+    return result.content[0].text
+
+
 def tool_named(name):
     async def listing(client):
         return (await client.list_tools()).tools
@@ -195,3 +206,48 @@ class TestValidatePayment:
             "description"
         ]
         assert "ask the user" in description
+
+
+class TestEncodePayment:
+    def test_produces_the_spec_payload(self):
+        result = call("encode_payment", **VALID)
+        assert result["payload"] == (
+            "K:PR|V:01|C:1|R:265000123456789098|N:Elektrodistribucija Beograd|I:RSD3450,00|SF:189"
+        )
+
+    def test_carries_optional_fields_and_cyrillic(self):
+        result = call(
+            "encode_payment",
+            recipient_account="840-743324843-18",
+            recipient_name="БУЏЕТ РЕПУБЛИКЕ СРБИЈЕ",
+            amount="5000",
+            payment_code="253",
+            reference_model="97",
+            reference_number="08501265012043052",
+        )
+        assert "N:БУЏЕТ РЕПУБЛИКЕ СРБИЈЕ" in result["payload"]
+        assert result["payload"].endswith("RO:9708501265012043052")
+
+    def test_refuses_a_bad_checksum_instead_of_encoding_it(self):
+        message = call_expecting_error(
+            "encode_payment", **{**VALID, "recipient_account": "265-1234567890-97"}
+        )
+        assert "Refusing" in message
+        assert "recipient_account" in message
+
+    def test_the_refusal_lists_every_problem_at_once(self):
+        message = call_expecting_error(
+            "encode_payment",
+            recipient_account=VALID_ACCOUNT,
+            recipient_name="",
+            amount="0",
+            payment_code="189",
+        )
+        assert "recipient_name" in message and "amount" in message
+
+    def test_passes_warnings_along_with_the_payload(self):
+        result = call(
+            "encode_payment", **VALID, reference_model="97", reference_number="911234567890"
+        )
+        assert result["payload"]
+        assert result["warnings"]
