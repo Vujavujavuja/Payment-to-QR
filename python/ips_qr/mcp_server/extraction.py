@@ -22,6 +22,20 @@ from .tools import READ_ONLY
 #: Below this the extractor was guessing. Same threshold as the web app.
 REVIEW_THRESHOLD = 0.7
 
+#: A payment document is a page or two. These limits are far above any real
+#: slip, invoice or summons, and exist so that a path or a paste chosen by a
+#: model cannot make the server read an arbitrarily large file into memory.
+MAX_PDF_BYTES = 20 * 1024 * 1024
+MAX_TEXT_CHARS = 200_000
+
+
+def _check_text_size(text: str) -> None:
+    if len(text) > MAX_TEXT_CHARS:
+        raise ToolError(
+            f"The text is {len(text):,} characters; the limit is {MAX_TEXT_CHARS:,}. "
+            "A payment document is a page or two: pass only the part with the payment details."
+        )
+
 
 def extraction_to_dict(result: ExtractionResult) -> dict[str, Any]:
     """Shape an extraction for an assistant: what was found, and how far to trust it."""
@@ -64,6 +78,7 @@ def extract_payment_from_text_content(
     guessed: in particular, expect payment_code to be missing on most invoices
     and official documents.
     """
+    _check_text_size(text)
     return extraction_to_dict(extract_payment_from_text(text, provider="mcp-text"))
 
 
@@ -87,10 +102,18 @@ def extract_payment_from_pdf(
         raise ToolError(f"Not a PDF: {pdf.name}. This tool only reads .pdf files.")
     if not pdf.is_file():
         raise ToolError(f"No such file: {pdf}")
+    size = pdf.stat().st_size
+    if size > MAX_PDF_BYTES:
+        raise ToolError(
+            f"{pdf.name} is {size / 1024 / 1024:.1f} MB; the limit is "
+            f"{MAX_PDF_BYTES // 1024 // 1024} MB. A payment document is a page or two."
+        )
     try:
         text = pdf_to_text(str(pdf))
     except PdfTextError as exc:
         raise ToolError(str(exc)) from exc
+    # A small file can still expand into a great deal of text.
+    _check_text_size(text)
 
     result = extraction_to_dict(extract_payment_from_text(text, provider="mcp-pdf"))
     result["source"] = str(pdf)
