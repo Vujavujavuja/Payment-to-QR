@@ -478,6 +478,33 @@ class TestSaveQr:
         )
         assert not target.exists()
 
+    def test_does_not_write_through_a_dangling_symlink(self, tmp_path):
+        # exists() is False for a dangling link, so only the open can stop this.
+        elsewhere = tmp_path / "elsewhere.png"
+        link = tmp_path / "pay.png"
+        link.symlink_to(elsewhere)
+        message = call_expecting_error("save_qr", path=str(link), **VALID)
+        assert "symbolic link" in message
+        assert not elsewhere.exists()
+
+    def test_does_not_write_through_a_symlink_even_with_overwrite(self, tmp_path):
+        real = tmp_path / "real.png"
+        real.write_bytes(b"keep me")
+        link = tmp_path / "pay.png"
+        link.symlink_to(real)
+        call_expecting_error("save_qr", path=str(link), overwrite=True, **VALID)
+        assert real.read_bytes() == b"keep me"
+
+    def test_the_open_itself_refuses_a_file_that_appeared_late(self, tmp_path):
+        # Simulates the race: the name is free when checked, taken when opened.
+        from ips_qr.mcp_server import rendering
+
+        target = tmp_path / "pay.png"
+        target.write_bytes(b"created in between")
+        with pytest.raises(rendering.ToolError, match="already exists"):
+            rendering._write(target, b"new", overwrite=False)
+        assert target.read_bytes() == b"created in between"
+
     def test_is_the_only_tool_not_advertised_as_read_only(self):
         async def listing(client):
             return (await client.list_tools()).tools
