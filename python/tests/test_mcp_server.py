@@ -15,8 +15,15 @@ pytest.importorskip("mcp", reason="needs the 'mcp' extra")
 
 from mcp import Client
 
+from ips_qr import validate_payment
 from ips_qr.mcp_server import app
 from ips_qr.mcp_server.app import INSTRUCTIONS
+from ips_qr.mcp_server.payments import (
+    account_display,
+    build_payment,
+    payment_to_dict,
+    validation_to_dict,
+)
 
 
 def connect(fn):
@@ -59,3 +66,42 @@ class TestOptionalDependency:
         )
         done = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
         assert done.stdout.strip() == "ok", done.stderr
+
+
+#: Checksum-valid account: bank 265, account 1234567890, control 98.
+VALID_ACCOUNT = "265-1234567890-98"
+
+VALID = {
+    "recipient_account": VALID_ACCOUNT,
+    "recipient_name": "Elektrodistribucija Beograd",
+    "amount": "3450,00",
+    "payment_code": "189",
+}
+
+
+class TestPaymentHelpers:
+    def test_build_payment_passes_input_through_untouched(self):
+        # Validation must see what was sent, not a normalised copy of it.
+        payment = build_payment(**VALID)
+        assert payment.recipient_account == VALID_ACCOUNT
+        assert payment.amount == "3450,00"
+
+    def test_payment_to_dict_drops_empty_fields(self):
+        assert payment_to_dict(build_payment(**VALID)) == VALID
+
+    def test_validation_keeps_errors_and_warnings_apart(self):
+        payment = build_payment(
+            **{**VALID, "recipient_account": "265-1234567890-97"},
+            reference_model="97",
+            reference_number="911234567890",
+        )
+        result = validation_to_dict(validate_payment(payment))
+        assert result["valid"] is False
+        assert [e["field"] for e in result["errors"]] == ["recipient_account"]
+        assert [w["field"] for w in result["warnings"]] == ["reference_number"]
+
+    def test_account_display_is_the_form_printed_on_a_slip(self):
+        assert account_display(VALID_ACCOUNT) == "265-0001234567890-98"
+
+    def test_account_display_returns_garbage_unchanged(self):
+        assert account_display("not an account") == "not an account"
