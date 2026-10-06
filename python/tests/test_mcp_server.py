@@ -6,6 +6,7 @@ checks the part direct calls cannot: what a client is actually told.
 """
 
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -16,6 +17,7 @@ import pytest
 pytest.importorskip("mcp", reason="needs the 'mcp' extra")
 
 from mcp import Client
+from pdf_builder import minimal_pdf
 
 from ips_qr import validate_payment
 from ips_qr.mcp_server import app
@@ -331,3 +333,46 @@ class TestExtractFromText:
     def test_tells_the_assistant_to_confirm_with_the_user(self):
         result = call("extract_payment_from_text_content", text=SUMMONS)
         assert "confirm" in result["next_step"]
+
+
+needs_pdftotext = pytest.mark.skipif(
+    shutil.which("pdftotext") is None, reason="needs poppler's pdftotext on PATH"
+)
+
+PDF_LINES = [
+    "PREKRSAJNI NALOG",
+    "Uplatu izvrsiti u korist: BUDZET REPUBLIKE SRBIJE,",
+    "na racun broj 840-743324843-18",
+    "sa pozivom na broj 08501265012043052 model 97",
+    "novcana kazna u fiksnom iznosu od 10000 dinara",
+]
+
+
+class TestExtractFromPdf:
+    @needs_pdftotext
+    def test_reads_a_pdf_from_disk(self, tmp_path):
+        pdf = tmp_path / "nalog.pdf"
+        pdf.write_bytes(minimal_pdf(PDF_LINES))
+        result = call("extract_payment_from_pdf", path=str(pdf))
+        assert result["fields"]["recipient_account"] == "840000074332484318"
+        assert result["fields"]["amount"] == "10000.00"
+        assert result["source"] == str(pdf)
+        assert result["missing_required"] == ["payment_code"]
+
+    @needs_pdftotext
+    def test_explains_a_pdf_with_no_text_layer(self, tmp_path):
+        pdf = tmp_path / "scan.pdf"
+        pdf.write_bytes(minimal_pdf([]))
+        result = call("extract_payment_from_pdf", path=str(pdf))
+        assert result["fields"] == {}
+        assert any("no text layer" in note for note in result["notes"])
+
+    def test_refuses_a_file_that_is_not_a_pdf(self, tmp_path):
+        other = tmp_path / "notes.txt"
+        other.write_text("racun 840-743324843-18")
+        message = call_expecting_error("extract_payment_from_pdf", path=str(other))
+        assert "Not a PDF" in message
+
+    def test_says_when_the_file_does_not_exist(self, tmp_path):
+        message = call_expecting_error("extract_payment_from_pdf", path=str(tmp_path / "no.pdf"))
+        assert "No such file" in message
