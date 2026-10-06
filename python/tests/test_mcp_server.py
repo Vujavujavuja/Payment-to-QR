@@ -251,3 +251,28 @@ class TestEncodePayment:
         )
         assert result["payload"]
         assert result["warnings"]
+
+
+class TestParsePayload:
+    def test_round_trips_what_encode_payment_produced(self):
+        payload = call("encode_payment", **VALID, purpose="Racun za struju")["payload"]
+        result = call("parse_payload", payload=payload)
+        assert result["recognised"] is True
+        assert result["fields"]["recipient_account"] == "265000123456789098"
+        assert result["fields"]["amount"] == "3450.00"
+        assert result["fields"]["purpose"] == "Racun za struju"
+        assert result["validation"]["valid"] is True
+
+    def test_says_when_the_text_is_not_a_payload(self):
+        result = call("parse_payload", payload="https://example.com/pay")
+        assert result["recognised"] is False
+        assert "fields" not in result
+
+    def test_validates_a_payload_that_parses_but_is_wrong(self):
+        # Well-formed, but the account's control digits do not verify.
+        result = call(
+            "parse_payload",
+            payload="K:PR|V:01|C:1|R:265000123456789097|N:Test|I:RSD10,00|SF:189",
+        )
+        assert result["recognised"] is True
+        assert result["validation"]["valid"] is False
