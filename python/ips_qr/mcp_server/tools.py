@@ -12,6 +12,7 @@ from typing import Any
 from mcp.server.mcpserver.exceptions import ToolError
 from mcp.types import ToolAnnotations
 
+from ..constants import COMMON_PAYMENT_CODES
 from ..encode import encode_payment as encode
 from ..format import format_account, normalize_account
 from ..parse import parse_payload as parse
@@ -181,4 +182,19 @@ def parse_payload(payload: str) -> dict[str, Any]:
         "fields": payment_to_dict(payment),
         "account_display": account_display(payment.recipient_account),
         "validation": validation_to_dict(check_payment(payment)),
+    }
+
+
+@app.tool(title="List common payment codes", annotations=READ_ONLY)
+def list_payment_codes() -> dict[str, Any]:
+    """List the payment codes (sifra placanja) an individual is likely to need.
+
+    Offer these to the user when the document does not state a code. Do not
+    pick one for them: the right code depends on what is being paid, and any
+    3-digit code is permitted, not only the ones listed.
+    """
+    return {
+        "codes": [{"code": code, "meaning": meaning} for code, meaning in COMMON_PAYMENT_CODES],
+        "note": "Any 3-digit code is valid. This is a shortlist to offer the user, "
+        "not a default to apply.",
     }
