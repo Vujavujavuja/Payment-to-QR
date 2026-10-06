@@ -117,3 +117,18 @@ def test_png_bytes_decode_without_ever_touching_the_disk():
     image = cv2.imdecode(numpy.frombuffer(data, numpy.uint8), cv2.IMREAD_COLOR)
     decoded, _points, _straight = cv2.QRCodeDetector().detectAndDecode(image)
     assert decoded == payload
+
+
+def test_a_failed_render_leaves_an_existing_file_untouched(tmp_path, monkeypatch):
+    import ips_qr.qr as qr_module
+
+    target = tmp_path / "keep.png"
+    target.write_bytes(b"previous contents")
+
+    def boom(*_args, **_kwargs):
+        raise RuntimeError("renderer unavailable")
+
+    monkeypatch.setattr(qr_module, "render_payload_to_png_bytes", boom)
+    with pytest.raises(RuntimeError):
+        render_payload_to_png("K:PR|V:01", str(target))
+    assert target.read_bytes() == b"previous contents"

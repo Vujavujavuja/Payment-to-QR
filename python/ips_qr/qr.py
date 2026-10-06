@@ -58,8 +58,13 @@ def render_payload_to_png_bytes(payload: str, options: QrOptions | None = None) 
 
 def render_payload_to_png(payload: str, path: str, options: QrOptions | None = None) -> str:
     """Write an already-encoded payload to a PNG file. Returns the path."""
+    # Render first. Opening for writing truncates, so doing it the other way
+    # round would empty an existing file and then fail to refill it whenever
+    # rendering raises -- for instance when the optional qrcode dependency is
+    # missing.
+    data = render_payload_to_png_bytes(payload, options)
     with open(path, "wb") as handle:
-        handle.write(render_payload_to_png_bytes(payload, options))
+        handle.write(data)
     return path
 
 
