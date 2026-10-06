@@ -134,7 +134,6 @@ The same specification, twice, with test suites that mirror each other.
 | Extraction | `src/extract` | `python/ips_qr/extract` |
 | Interface | Web app (Next.js) | `ips-qr` CLI, MCP server |
 | Input | Camera, file, paste | Text, PDF, stdin |
-| Tests | 35 | 71 |
 
 The Python port currently fixes three bugs the TypeScript still has — see
 [#2](https://github.com/Vujavujavuja/Payment-to-QR/issues/2). Divergence is
@@ -248,7 +247,7 @@ src/
   lib/           App-only helpers: site metadata, rate limiting
 python/
   ips_qr/        The port: core, extraction, PDF backend, CLI, MCP server
-  tests/         71 tests, including a render-and-decode round trip
+  tests/         Including a render-and-decode round trip and the MCP server
 ```
 
 An npm workspace: `packages/ips-qr` is publishable and dependency-free, the

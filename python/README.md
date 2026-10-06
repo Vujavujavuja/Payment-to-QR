@@ -126,8 +126,8 @@ meant to be looked at.
 pytest -q
 ```
 
-71 tests. Beyond the ported core suite they cover the parts that actually
-break in the field:
+Beyond the ported core suite, the tests cover the parts that actually break
+in the field:
 
 - **Script folding offsets.** `Џ` folds to `dz`, so a folded string is longer
   than its source and folded indices are not raw indices.
