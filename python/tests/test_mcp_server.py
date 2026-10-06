@@ -8,6 +8,7 @@ checks the part direct calls cannot: what a client is actually told.
 import json
 import subprocess
 import sys
+from pathlib import Path
 
 import anyio
 import pytest
@@ -99,6 +100,9 @@ class TestOptionalDependency:
         done = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
         assert done.stdout.strip() == "ok", done.stderr
 
+
+#: The redacted traffic-fine summons the extractor suites share.
+SUMMONS = (Path(__file__).parent / "fixtures" / "prekrsajni_poziv.txt").read_text(encoding="utf-8")
 
 #: Checksum-valid account: bank 265, account 1234567890, control 98.
 VALID_ACCOUNT = "265-1234567890-98"
@@ -294,3 +298,36 @@ class TestListPaymentCodes:
 
     def test_takes_no_arguments(self):
         assert tool_named("list_payment_codes").input_schema.get("required", []) == []
+
+
+class TestExtractFromText:
+    def test_finds_the_fields_a_summons_states(self):
+        result = call("extract_payment_from_text_content", text=SUMMONS)
+        fields = result["fields"]
+        assert fields["recipient_account"] == "840000074332484318"
+        assert fields["recipient_name"] == "БУЏЕТ РЕПУБЛИКЕ СРБИЈЕ"
+        assert fields["amount"] == "10000.00"
+        assert fields["reference_model"] == "97"
+        assert result["account_display"] == "840-0000743324843-18"
+
+    def test_reports_the_payment_code_as_missing_rather_than_guessing(self):
+        # Nothing on a summons states a sifra placanja.
+        result = call("extract_payment_from_text_content", text=SUMMONS)
+        assert "payment_code" not in result["fields"]
+        assert result["missing_required"] == ["payment_code"]
+
+    def test_flags_low_confidence_fields_for_review(self):
+        result = call("extract_payment_from_text_content", text=SUMMONS)
+        # The account passed its checksum; the name is a label match only.
+        assert "recipient_account" not in result["needs_review"]
+        assert "recipient_name" in result["needs_review"]
+
+    def test_everything_is_missing_when_nothing_is_found(self):
+        result = call("extract_payment_from_text_content", text="The quick brown fox.")
+        assert result["fields"] == {}
+        assert len(result["missing_required"]) == 4
+        assert result["notes"]
+
+    def test_tells_the_assistant_to_confirm_with_the_user(self):
+        result = call("extract_payment_from_text_content", text=SUMMONS)
+        assert "confirm" in result["next_step"]
