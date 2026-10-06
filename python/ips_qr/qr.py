@@ -7,6 +7,7 @@ usable without it.
 
 from __future__ import annotations
 
+import io
 from dataclasses import dataclass
 
 from .encode import encode_payment
@@ -45,12 +46,20 @@ def _build(payload: str, options: QrOptions):
     return code
 
 
-def render_payload_to_png(payload: str, path: str, options: QrOptions | None = None) -> str:
-    """Write an already-encoded payload to a PNG file. Returns the path."""
+def render_payload_to_png_bytes(payload: str, options: QrOptions | None = None) -> bytes:
+    """Render an already-encoded payload as PNG bytes, without touching the disk."""
     opts = options or QrOptions()
     # Explicit black-on-white: theme-driven colours would break scanning.
     image = _build(payload, opts).make_image(fill_color="black", back_color="white")
-    image.save(path)
+    buffer = io.BytesIO()
+    image.save(buffer, format="PNG")
+    return buffer.getvalue()
+
+
+def render_payload_to_png(payload: str, path: str, options: QrOptions | None = None) -> str:
+    """Write an already-encoded payload to a PNG file. Returns the path."""
+    with open(path, "wb") as handle:
+        handle.write(render_payload_to_png_bytes(payload, options))
     return path
 
 
