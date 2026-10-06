@@ -14,6 +14,7 @@ from mcp.types import ToolAnnotations
 
 from ..encode import encode_payment as encode
 from ..format import format_account, normalize_account
+from ..parse import parse_payload as parse
 from ..types import IpsPayment
 from ..validate import is_valid_account_checksum
 from ..validate import validate_payment as check_payment
@@ -29,6 +30,7 @@ from .payments import (
     ReferenceNumber,
     account_display,
     build_payment,
+    payment_to_dict,
     validation_to_dict,
 )
 
@@ -157,4 +159,26 @@ def encode_payment(
         "payload": payload,
         "account_display": account_display(recipient_account),
         "warnings": validation["warnings"],
+    }
+
+
+@app.tool(title="Read an IPS payload back into fields", annotations=READ_ONLY)
+def parse_payload(payload: str) -> dict[str, Any]:
+    """Decode an IPS payload string (the text inside an IPS QR code) into its fields.
+
+    Use it to inspect or edit a code someone else produced. The decoded payment
+    is validated as well, because a payload that parses is not necessarily one
+    a bank will accept.
+    """
+    payment = parse(payload)
+    if payment is None:
+        return {
+            "recognised": False,
+            "message": "Not an IPS payload. One starts with K:PR and separates tags with '|'.",
+        }
+    return {
+        "recognised": True,
+        "fields": payment_to_dict(payment),
+        "account_display": account_display(payment.recipient_account),
+        "validation": validation_to_dict(check_payment(payment)),
     }
