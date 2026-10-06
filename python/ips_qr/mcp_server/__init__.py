@@ -5,6 +5,7 @@ payment, encode it and render the QR code without any of it leaving the
 machine. Needs the ``mcp`` extra; importing :mod:`ips_qr` itself never does.
 """
 
+from . import tools  # noqa: F401  (importing registers the tools on the app)
 from .app import app
 
 
