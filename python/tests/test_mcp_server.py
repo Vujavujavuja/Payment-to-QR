@@ -149,3 +149,49 @@ class TestNormalizeAccountNumber:
     def test_is_advertised_as_read_only(self):
         annotations = tool_named("normalize_account_number").annotations
         assert annotations.read_only_hint is True
+
+
+class TestValidatePayment:
+    def test_accepts_a_well_formed_payment(self):
+        result = call("validate_payment", **VALID)
+        assert result["valid"] is True
+        assert result["errors"] == []
+        assert result["account_display"] == "265-0001234567890-98"
+
+    def test_reports_every_error_not_just_the_first(self):
+        result = call(
+            "validate_payment",
+            recipient_account="265-1234567890-97",
+            recipient_name="",
+            amount="0",
+            payment_code="18",
+        )
+        assert result["valid"] is False
+        assert {e["field"] for e in result["errors"]} == {
+            "recipient_account",
+            "recipient_name",
+            "amount",
+            "payment_code",
+        }
+
+    def test_a_warning_does_not_make_the_payment_invalid(self):
+        result = call(
+            "validate_payment", **VALID, reference_model="97", reference_number="911234567890"
+        )
+        assert result["valid"] is True
+        assert result["warnings"]
+
+    def test_the_schema_marks_only_four_fields_required(self):
+        schema = tool_named("validate_payment").input_schema
+        assert sorted(schema["required"]) == [
+            "amount",
+            "payment_code",
+            "recipient_account",
+            "recipient_name",
+        ]
+
+    def test_the_schema_tells_the_model_not_to_assume_a_payment_code(self):
+        description = tool_named("validate_payment").input_schema["properties"]["payment_code"][
+            "description"
+        ]
+        assert "ask the user" in description
