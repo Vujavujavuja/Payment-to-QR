@@ -507,3 +507,47 @@ class TestFormatResource:
         _listed, content = self.read()
         assert f"| Recipient name | yes | {IPS_FIELD_LIMITS['recipient_name']} |" in content.text
         assert f"| Purpose of payment | no | {IPS_FIELD_LIMITS['purpose']} |" in content.text
+
+
+class TestPayDocumentPrompt:
+    def render(self, document):
+        async def fetch(client):
+            listed = (await client.list_prompts()).prompts
+            got = await client.get_prompt("pay_document", {"document": document})
+            return listed, got.messages[0].content.text
+
+        return connect(fetch)
+
+    def test_is_listed_with_its_one_argument(self):
+        listed, _text = self.render("x")
+        prompt = next(p for p in listed if p.name == "pay_document")
+        assert [a.name for a in prompt.arguments] == ["document"]
+
+    def test_includes_the_document_it_was_given(self):
+        _listed, text = self.render("~/Downloads/poziv.pdf")
+        assert "~/Downloads/poziv.pdf" in text
+
+    def test_puts_confirmation_before_generation(self):
+        _listed, text = self.render("x")
+        assert text.index("confirm") < text.index("generate_qr")
+
+    def test_checks_the_account_before_showing_fields(self):
+        _listed, text = self.render("x")
+        assert text.index("normalize_account_number") < text.index("Show me every field")
+
+    def test_only_names_tools_that_exist(self):
+        # A prompt that tells the model to call a tool that was since renamed
+        # fails silently in use, so pin it here.
+        async def names(client):
+            return {t.name for t in (await client.list_tools()).tools}
+
+        _listed, text = self.render("x")
+        mentioned = {
+            "extract_payment_from_pdf",
+            "extract_payment_from_text_content",
+            "normalize_account_number",
+            "list_payment_codes",
+            "generate_qr",
+        }
+        assert all(name in text for name in mentioned)
+        assert mentioned <= connect(names)
