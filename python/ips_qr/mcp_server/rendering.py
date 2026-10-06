@@ -83,6 +83,26 @@ WRITES_A_FILE = ToolAnnotations(
 _FORMATS = (".png", ".svg")
 
 
+def _write(target: Path, data: bytes, overwrite: bool) -> None:
+    """Write the file, with the no-overwrite rule enforced by the open itself.
+
+    Checking ``exists()`` first and writing afterwards is not enough on its
+    own. A dangling symlink reports as not existing and a plain write follows
+    it, creating a file somewhere else; and anything created between the check
+    and the write would be replaced silently. Exclusive creation closes both:
+    the open fails if the name is taken, symlink or not.
+    """
+    if target.is_symlink():
+        raise ToolError(f"{target} is a symbolic link. Refusing to write through it.")
+    try:
+        with open(target, "wb" if overwrite else "xb") as handle:
+            handle.write(data)
+    except FileExistsError:
+        raise ToolError(
+            f"{target} already exists. Pass overwrite=true to replace it."
+        ) from None
+
+
 @app.tool(title="Save an IPS QR code to a file", annotations=WRITES_A_FILE)
 def save_qr(
     path: Annotated[
@@ -129,9 +149,10 @@ def save_qr(
     payload, validation = _encode_or_refuse(payment)
 
     if target.suffix.lower() == ".svg":
-        target.write_text(render_payload_to_svg(payload), encoding="utf-8")
+        data = render_payload_to_svg(payload).encode("utf-8")
     else:
-        target.write_bytes(render_payload_to_png_bytes(payload))
+        data = render_payload_to_png_bytes(payload)
+    _write(target, data, overwrite)
 
     return {
         "saved": str(target.resolve()),
