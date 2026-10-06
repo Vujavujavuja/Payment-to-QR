@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "payment-to-qr": {
+      "command": "uv",
+      "args": ["run", "--no-project", "--with-editable", "./python[mcp]", "ips-qr-mcp"]
+    }
+  }
+}

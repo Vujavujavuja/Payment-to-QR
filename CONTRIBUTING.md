@@ -109,6 +109,31 @@ The same applies to a heuristic in `python/ips_qr/extract/normalize.py`: if a
 label matches but the value is unusable, keep searching rather than recording
 something that merely has the right shape.
 
+## Changing the MCP server
+
+`python/ips_qr/mcp_server/` wraps the library for assistants. Three rules keep
+it honest, and each has a test that fails if it is broken:
+
+1. **Tools do not re-implement the library.** They call it. If a tool needs
+   logic the library lacks, add it to the library, where it is tested against
+   the TypeScript implementation.
+2. **Anything that produces a payload goes through `_encode_or_refuse`.** That
+   is the single place an invalid payment is turned away, so a new tool cannot
+   accidentally become a way round it.
+3. **A tool that writes must say so.** Every tool is annotated read-only except
+   `save_qr`, and a test asserts that list. Adding a tool also means adding it
+   to the pinned inventory, on purpose: it changes what users have granted.
+
+Raise `ToolError` for a failure you anticipated. Any other exception is
+treated by the SDK as a crash, and the client is told only that the tool
+failed, not why.
+
+Try a change against the real thing with the MCP inspector:
+
+```bash
+cd python && npx @modelcontextprotocol/inspector .venv/bin/ips-qr-mcp
+```
+
 ## Adding a test fixture
 
 Fixtures live in `python/tests/fixtures/` as plain text. Redact first, keep the

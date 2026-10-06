@@ -54,6 +54,61 @@ extracted. If the result does not validate, no QR is written.
 Other sources: `--text file.txt`, `--stdin`, or `--payload 'K:PR|V:01|...'`
 to start from an existing code.
 
+## Use it from Claude Code (MCP)
+
+The package includes a [Model Context Protocol](https://modelcontextprotocol.io)
+server, so an assistant can validate a payment, encode it and draw the QR code
+on your machine. It runs over stdio as a local process: no port, no account,
+and a PDF you point it at is read from disk rather than uploaded.
+
+**In this repository there is nothing to set up.** `.mcp.json` at the root
+registers the server; open the folder in Claude Code, approve it once, and ask:
+
+> Make an IPS QR code for ~/Downloads/racun.pdf
+
+or run the bundled prompt, `/mcp__payment-to-qr__pay_document`.
+
+It needs [uv](https://docs.astral.sh/uv/), which builds an isolated
+environment on first launch. Without uv, install the extra and point your
+client at the script instead:
+
+```bash
+pip install -e ".[mcp]"
+claude mcp add payment-to-qr -- ips-qr-mcp
+```
+
+### Tools
+
+| Tool | |
+| --- | --- |
+| `normalize_account_number` | Expand an account to 18 digits and check its control digits |
+| `validate_payment` | Errors and warnings, nothing produced |
+| `encode_payment` | The IPS payload string |
+| `parse_payload` | A payload back into fields, validated |
+| `list_payment_codes` | Common codes to offer when a document states none |
+| `extract_payment_from_text_content` | Candidate fields from text, with confidence |
+| `extract_payment_from_pdf` | The same, from a local PDF with a text layer |
+| `generate_qr` | The QR code as an inline PNG |
+| `save_qr` | The QR code as a `.png` or `.svg` file |
+
+Plus a resource, `ips-qr://format`, and the `pay_document` prompt.
+
+### What it will not do
+
+The same things the web app will not, enforced in the tools rather than left
+to the assistant's judgement:
+
+- **Encode an invalid payment.** `encode_payment`, `generate_qr` and `save_qr`
+  share one validate-then-encode path and refuse, listing every error.
+- **Invent a field.** Extraction reports `missing_required` instead of filling
+  gaps, and the payment code is usually among them.
+- **Write where it was not asked.** `save_qr` is the only tool that touches the
+  disk. It takes `.png` or `.svg` only, creates no directories, and leaves an
+  existing file alone unless `overwrite` is set. Every other tool is annotated
+  read-only, so you can allow those and still be asked about this one.
+- **Move money.** There is no bank connection. Your banking app makes the
+  payment after you confirm it there.
+
 ## What extraction will and will not do
 
 It reports only what it can see. It does not infer a payment code, complete a
@@ -71,8 +126,8 @@ meant to be looked at.
 pytest -q
 ```
 
-71 tests. Beyond the ported core suite they cover the parts that actually
-break in the field:
+Beyond the ported core suite, the tests cover the parts that actually break
+in the field:
 
 - **Script folding offsets.** `Џ` folds to `dz`, so a folded string is longer
   than its source and folded indices are not raw indices.

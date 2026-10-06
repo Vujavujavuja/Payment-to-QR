@@ -47,6 +47,22 @@ It is a progressive web app and can be installed to a phone's home screen.
 
 Nothing is downloaded speculatively; the language data arrives only if you scan.
 
+## Using it from an AI assistant
+
+The repository includes a Model Context Protocol (MCP) server that runs locally
+over stdio. Claude Code picks it up from `.mcp.json` when the repository is
+opened; other MCP clients can launch `ips-qr-mcp` after
+`pip install -e "python[mcp]"`.
+
+It offers nine tools: normalize_account_number, validate_payment,
+encode_payment, parse_payload, list_payment_codes,
+extract_payment_from_text_content, extract_payment_from_pdf, generate_qr and
+save_qr. Only save_qr writes a file; the rest are read-only.
+
+The tools refuse to encode a payment that fails validation and report missing
+fields rather than filling them in. The payment code (sifra placanja) is
+usually not printed on a document and must be asked of the user.
+
 ## The payload format
 
 An IPS QR code is a flat, pipe-separated string of tagged fields:

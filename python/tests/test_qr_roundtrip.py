@@ -13,7 +13,12 @@ from ips_qr import IpsPayment, encode_payment, parse_payload, validate_payment
 cv2 = pytest.importorskip("cv2", reason="decode check needs opencv-python-headless")
 pytest.importorskip("qrcode", reason="rendering needs the 'qr' extra")
 
-from ips_qr.qr import QrOptions, render_payload_to_png, render_payload_to_svg
+from ips_qr.qr import (
+    QrOptions,
+    render_payload_to_png,
+    render_payload_to_png_bytes,
+    render_payload_to_svg,
+)
 
 
 def _decode(path: str) -> str:
@@ -101,3 +106,29 @@ def test_svg_is_well_formed_and_sized(tmp_path):
     assert svg.rstrip().endswith("</svg>")
     assert svg.count("<rect") > 100  # modules actually drawn
     assert 'fill="#000000"' in svg and 'fill="#ffffff"' in svg
+
+
+def test_png_bytes_decode_without_ever_touching_the_disk():
+    import numpy
+
+    payload = encode_payment(CASES["cyrillic_traffic_fine"]).payload
+    data = render_payload_to_png_bytes(payload)
+    assert data.startswith(b"\x89PNG")
+    image = cv2.imdecode(numpy.frombuffer(data, numpy.uint8), cv2.IMREAD_COLOR)
+    decoded, _points, _straight = cv2.QRCodeDetector().detectAndDecode(image)
+    assert decoded == payload
+
+
+def test_a_failed_render_leaves_an_existing_file_untouched(tmp_path, monkeypatch):
+    import ips_qr.qr as qr_module
+
+    target = tmp_path / "keep.png"
+    target.write_bytes(b"previous contents")
+
+    def boom(*_args, **_kwargs):
+        raise RuntimeError("renderer unavailable")
+
+    monkeypatch.setattr(qr_module, "render_payload_to_png_bytes", boom)
+    with pytest.raises(RuntimeError):
+        render_payload_to_png("K:PR|V:01", str(target))
+    assert target.read_bytes() == b"previous contents"

@@ -106,6 +106,24 @@ Nothing is downloaded speculatively: install the app and it costs you the page.
 The tens of megabytes of language data arrive only if you actually scan
 something.
 
+## Use it from Claude Code
+
+The repository ships a local [MCP](https://modelcontextprotocol.io) server.
+Open the folder in Claude Code, approve `payment-to-qr` once, and ask:
+
+> Make an IPS QR code for ~/Downloads/racun.pdf
+
+Claude extracts the fields, checks the account's control digits, shows you
+everything to confirm, asks for what the document does not state, and only
+then draws the code. The server runs on your machine over stdio — the PDF is
+read from disk, not uploaded — and it needs only [uv](https://docs.astral.sh/uv/).
+
+The review step is not left to the assistant's good behaviour. The tools
+refuse to encode a payment that fails validation, report missing fields
+instead of filling them, and only one of the nine can write a file.
+[`python/README.md`](python/README.md#use-it-from-claude-code-mcp) has the
+tool list and the setup without uv.
+
 ## Two implementations
 
 The same specification, twice, with test suites that mirror each other.
@@ -114,9 +132,8 @@ The same specification, twice, with test suites that mirror each other.
 | --- | --- | --- |
 | Library | `packages/ips-qr` | `python/ips_qr` |
 | Extraction | `src/extract` | `python/ips_qr/extract` |
-| Interface | Web app (Next.js) | `ips-qr` CLI |
+| Interface | Web app (Next.js) | `ips-qr` CLI, MCP server |
 | Input | Camera, file, paste | Text, PDF, stdin |
-| Tests | 35 | 71 |
 
 The Python port currently fixes three bugs the TypeScript still has — see
 [#2](https://github.com/Vujavujavuja/Payment-to-QR/issues/2). Divergence is
@@ -229,8 +246,8 @@ src/
   components/    Dropzone, form, QR preview
   lib/           App-only helpers: site metadata, rate limiting
 python/
-  ips_qr/        The port: core, extraction, PDF backend, CLI
-  tests/         71 tests, including a render-and-decode round trip
+  ips_qr/        The port: core, extraction, PDF backend, CLI, MCP server
+  tests/         Including a render-and-decode round trip and the MCP server
 ```
 
 An npm workspace: `packages/ips-qr` is publishable and dependency-free, the

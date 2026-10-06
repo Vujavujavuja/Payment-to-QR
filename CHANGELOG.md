@@ -7,6 +7,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **A local MCP server**, so the library can be driven from Claude Code or any
+  other Model Context Protocol client. It runs over stdio on your own machine
+  and is registered by `.mcp.json`, so opening the repository is the whole
+  setup.
+
+  Nine tools: account normalisation, validation, encoding, parsing, payment
+  code lookup, extraction from text and from a local PDF, and QR generation as
+  an inline image or a file. Also the payload format as a resource and a
+  `pay_document` prompt that runs the review-first flow.
+
+  The constraints the web app enforces with its form are enforced here in the
+  tools: an invalid payment is refused rather than encoded, missing fields are
+  reported rather than filled, and only `save_qr` can write to disk.
+- `render_payload_to_png_bytes` in the Python library, for rendering a code
+  without writing a file.
+
 ### Changed
 
 - **The core library is now a real package.** `src/core` moves to
