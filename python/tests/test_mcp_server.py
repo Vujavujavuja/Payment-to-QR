@@ -432,3 +432,53 @@ class TestGenerateQr:
             "generate_qr", **{**VALID, "recipient_account": "265-1234567890-97"}
         )
         assert "Refusing" in message
+
+
+class TestSaveQr:
+    def test_writes_a_png_that_scans(self, tmp_path):
+        target = tmp_path / "pay.png"
+        result = call("save_qr", path=str(target), **VALID)
+        assert result["saved"] == str(target.resolve())
+        assert decode_qr(target.read_bytes()) == result["payload"]
+
+    def test_writes_an_svg_when_asked(self, tmp_path):
+        target = tmp_path / "pay.svg"
+        call("save_qr", path=str(target), **VALID)
+        assert target.read_text(encoding="utf-8").startswith("<svg")
+
+    def test_will_not_replace_an_existing_file_by_default(self, tmp_path):
+        target = tmp_path / "pay.png"
+        target.write_bytes(b"someone else's file")
+        message = call_expecting_error("save_qr", path=str(target), **VALID)
+        assert "already exists" in message
+        assert target.read_bytes() == b"someone else's file"
+
+    def test_replaces_it_when_overwrite_is_set(self, tmp_path):
+        target = tmp_path / "pay.png"
+        target.write_bytes(b"old")
+        call("save_qr", path=str(target), overwrite=True, **VALID)
+        assert target.read_bytes().startswith(b"\x89PNG")
+
+    def test_refuses_other_file_types(self, tmp_path):
+        message = call_expecting_error("save_qr", path=str(tmp_path / "pay.sh"), **VALID)
+        assert "Unsupported file type" in message
+
+    def test_does_not_create_directories(self, tmp_path):
+        target = tmp_path / "missing" / "pay.png"
+        message = call_expecting_error("save_qr", path=str(target), **VALID)
+        assert "does not exist" in message
+        assert not target.parent.exists()
+
+    def test_an_invalid_payment_leaves_no_file_behind(self, tmp_path):
+        target = tmp_path / "pay.png"
+        call_expecting_error(
+            "save_qr", path=str(target), **{**VALID, "recipient_account": "265-1234567890-97"}
+        )
+        assert not target.exists()
+
+    def test_is_the_only_tool_not_advertised_as_read_only(self):
+        async def listing(client):
+            return (await client.list_tools()).tools
+
+        writers = [t.name for t in connect(listing) if not t.annotations.read_only_hint]
+        assert writers == ["save_qr"]
