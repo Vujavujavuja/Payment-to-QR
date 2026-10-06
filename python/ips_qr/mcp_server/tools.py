@@ -13,8 +13,21 @@ from mcp.types import ToolAnnotations
 
 from ..format import format_account, normalize_account
 from ..validate import is_valid_account_checksum
+from ..validate import validate_payment as check_payment
 from .app import app
-from .payments import RecipientAccount
+from .payments import (
+    Amount,
+    PayerName,
+    PaymentCode,
+    Purpose,
+    RecipientAccount,
+    RecipientName,
+    ReferenceModel,
+    ReferenceNumber,
+    account_display,
+    build_payment,
+    validation_to_dict,
+)
 
 #: For tools that only compute. Clients use this to decide what may run
 #: without asking, and none of these touch the disk or the network.
@@ -50,3 +63,34 @@ def normalize_account_number(account: RecipientAccount) -> dict[str, Any]:
         else "Control digits do NOT verify. A digit was probably misread; "
         "re-check the account against the source before using it.",
     }
+
+
+@app.tool(title="Validate a payment", annotations=READ_ONLY)
+def validate_payment(
+    recipient_account: RecipientAccount,
+    recipient_name: RecipientName,
+    amount: Amount,
+    payment_code: PaymentCode,
+    payer_name: PayerName = "",
+    purpose: Purpose = "",
+    reference_model: ReferenceModel = "",
+    reference_number: ReferenceNumber = "",
+) -> dict[str, Any]:
+    """Check a payment against the IPS QR rules without producing anything.
+
+    Errors mean a QR code cannot be generated. Warnings mean it can, but
+    something looks wrong and the user should be told before they pay.
+    """
+    payment = build_payment(
+        recipient_account,
+        recipient_name,
+        amount,
+        payment_code,
+        payer_name,
+        purpose,
+        reference_model,
+        reference_number,
+    )
+    result = validation_to_dict(check_payment(payment))
+    result["account_display"] = account_display(recipient_account)
+    return result
